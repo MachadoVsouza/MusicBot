@@ -1,0 +1,150 @@
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 220 30% 7%;
+    --foreground: 230 20% 97%;
+
+    --card: 220 30% 7%;
+    --card-foreground: 230 20% 97%;
+
+    --popover: 220 30% 10%;
+    --popover-foreground: 230 20% 97%;
+
+    --primary: 342 74% 57%;
+    --primary-foreground: 230 20% 97%;
+
+    --secondary: 170 71% 41%;
+    --secondary-foreground: 230 20% 97%;
+
+    --muted: 215 10% 45%;
+    --muted-foreground: 215 10% 45%;
+
+    --accent: 45 87% 62%;
+    --accent-foreground: 220 30% 7%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 230 20% 97%;
+
+    --border: 0 0% 100% / 0.1;
+    --input: 0 0% 100% / 0.1;
+    --ring: 342 74% 57%;
+
+    --radius: 0.75rem;
+
+    /* Musicbot custom tokens */
+    --midnight-indigo: 220 30% 7%;
+    --electric-magenta: 342 74% 57%;
+    --teal-echo: 170 71% 41%;
+    --warm-gold: 45 87% 62%;
+    --paper-off-white: 230 20% 97%;
+    --slate-gray: 215 10% 45%;
+
+    --glass-bg: 0 0% 100% / 0.06;
+    --glass-border: 0 0% 100% / 0.1;
+    --surface-card: 0 0% 100% / 0.04;
+    --surface-hover: 0 0% 100% / 0.08;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-body antialiased;
+    background-color: hsl(var(--midnight-indigo));
+  }
+}
+
+@layer utilities {
+  .glass {
+    background: hsla(var(--glass-bg));
+    border: 1px solid hsla(var(--glass-border));
+    backdrop-filter: blur(16px);
+  }
+
+  .glass-strong {
+    background: hsla(0, 0%, 100%, 0.08);
+    border: 1px solid hsla(var(--glass-border));
+    backdrop-filter: blur(24px);
+  }
+
+  .font-display {
+    font-family: 'Syne', sans-serif;
+  }
+
+  .font-body {
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .font-mono-label {
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .text-off-white {
+    color: hsl(var(--paper-off-white));
+  }
+
+  .text-slate {
+    color: hsl(var(--slate-gray));
+  }
+
+  .bg-midnight {
+    background-color: hsl(var(--midnight-indigo));
+  }
+
+  .bg-magenta {
+    background-color: hsl(var(--electric-magenta));
+  }
+
+  .bg-teal {
+    background-color: hsl(var(--teal-echo));
+  }
+
+  .bg-gold {
+    background-color: hsl(var(--warm-gold));
+  }
+
+  .border-teal {
+    border-color: hsl(var(--teal-echo));
+  }
+
+  .border-magenta {
+    border-color: hsl(var(--electric-magenta));
+  }
+
+  .text-magenta {
+    color: hsl(var(--electric-magenta));
+  }
+
+  .text-teal {
+    color: hsl(var(--teal-echo));
+  }
+
+  .text-gold {
+    color: hsl(var(--warm-gold));
+  }
+
+  .typing-dot {
+    animation: typingDot 1.4s infinite;
+  }
+
+  .typing-dot:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+
+  .typing-dot:nth-child(3) {
+    animation-delay: 0.4s;
+  }
+}
+
+@keyframes typingDot {
+  0%, 60%, 100% { opacity: 0.3; transform: scale(0.8); }
+  30% { opacity: 1; transform: scale(1); }
+}
