@@ -1,5 +1,8 @@
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
+from recco_beats import get_audio_features as recco_get_audio_features
+from recco_beats import get_audio_features as recco_get_audio_features
+
 
 # ── Inicializa o cliente Spotipy com o token já obtido via PKCE ────────────────
 def get_client(token):
@@ -29,9 +32,9 @@ def get_recently_played(token):
     results = sp.current_user_recently_played(limit=10)
     return [
         {
-            "name":   item["track"]["name"],
-            "artist": item["track"]["artists"][0]["name"],
-            "album":  item["track"]["album"]["name"],
+            "name":      item["track"]["name"],
+            "artist":    item["track"]["artists"][0]["name"],
+            "album":     item["track"]["album"]["name"],
             "played_at": item["played_at"],
         }
         for item in results["items"]
@@ -48,8 +51,8 @@ def get_top_tracks(token, time_range="medium_term"):
     results = sp.current_user_top_tracks(limit=10, time_range=time_range)
     return [
         {
-            "name":       track["name"],
-            "artist":     track["artists"][0]["name"],
+            "name":   track["name"],
+            "artist": track["artists"][0]["name"],
         }
         for track in results["items"]
     ]
@@ -62,7 +65,7 @@ def get_top_artists(token, time_range="medium_term"):
     results = sp.current_user_top_artists(limit=10, time_range=time_range)
     return [
         {
-            "name":   artist["name"],
+            "name": artist["name"],
         }
         for artist in results["items"]
     ]
@@ -75,8 +78,8 @@ def get_saved_tracks(token):
     results = sp.current_user_saved_tracks(limit=10)
     return [
         {
-            "name":   item["track"]["name"],
-            "artist": item["track"]["artists"][0]["name"],
+            "name":     item["track"]["name"],
+            "artist":   item["track"]["artists"][0]["name"],
             "added_at": item["added_at"],
         }
         for item in results["items"]
@@ -106,3 +109,19 @@ def add_tracks_to_playlist(token, playlist_id, track_uris):
     sp = get_client(token)
     sp.playlist_add_items(playlist_id, track_uris)
     return True
+
+
+# ── Buscar track ───────────────────────────────────────────────────────────────
+def search_track(token, query, limit=1):
+    sp = get_client(token)
+    results = sp.search(q=query, type='track', limit=limit)
+    return results['tracks']['items']
+
+
+# ── Audio features via ReccoBeats ──────────────────────────────────────────────
+def get_track_audio_features(spotify_track_id: str) -> dict | None:
+    """
+    Retorna audio features via ReccoBeats (substitui o Spotify depreciado).
+    Recebe apenas o Spotify Track ID — sem token necessário.
+    """
+    return recco_get_audio_features(spotify_track_id)
