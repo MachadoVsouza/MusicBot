@@ -36,7 +36,7 @@ Session(app)
 # ── Configuração ───────────────────────────────────────────────────────────────
 CLIENT_ID     = os.getenv("SPOTIFY_CLIENT_ID", "b5727e21ded847928278e6fe1782060f")
 REDIRECT_URI = os.getenv("SPOTIFY_REDIRECT_URI", "http://127.0.0.1:5000/callback")
-FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:8080")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://127.0.0.1:8080")
 SCOPES = " ".join([
     "user-read-private",
     "user-read-email",
