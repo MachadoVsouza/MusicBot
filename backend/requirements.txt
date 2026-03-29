@@ -1,6 +1,5 @@
-flask
-requests
-psycopg2-binary
-spotipy
-flask-cors
-flask-session
+flask>=3.0
+flask-cors>=4.0
+flask-session>=0.8
+spotipy>=2.24
+requests>=2.32
