@@ -9,14 +9,15 @@ def require_auth(f):
     """
     Decorator que garante que a requisição tem um access_token válido.
     Tenta refresh automático se o token estiver expirado.
-    Injeta o token como primeiro argumento da função decorada.
+    Injeta (token, usuario_id) como primeiros argumentos da função decorada.
     """
     @functools.wraps(f)
     def wrapper(*args, **kwargs):
         repo  = AuthRepository()
         token = repo.get_access_token()
+        usuario_id = repo.get_usuario_id()
 
-        if not token:
+        if not token or not usuario_id:
             return unauthorized()
 
         # Verifica se o token ainda é válido
@@ -26,7 +27,7 @@ def require_auth(f):
                 repo.clear()
                 return unauthorized("Sessão expirada. Faça login novamente.")
 
-        return f(token, *args, **kwargs)
+        return f(token, usuario_id, *args, **kwargs)
     return wrapper
 
 

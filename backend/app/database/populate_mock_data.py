@@ -18,7 +18,7 @@ from sqlalchemy.orm import sessionmaker
 # Ajuste o caminho do import conforme sua estrutura
 # Exemplo: se o script está na raiz do projeto, use:
 from app.database.models import (
-    Usuario, SuperUsuario, Moderador, ModeradorNivel,
+    Usuario, SuperUsuario, Moderador, UsuarioNivel,
     Chat, ChatStatus, Pergunta, Resposta, Feedback, FeedbackTipo,
     Documento, Fragmento, RespostaFonte, now_utc
 )
@@ -64,11 +64,15 @@ def gerar_embedding_falso():
     return json.dumps(vetor)
 
 
-def criar_super_usuarios(session):
+def criar_super_usuarios(session, usuarios):
+    """Cria SuperUsuarios vinculados a usuarios existentes."""
     super_usuarios = []
-    for i in range(NUM_SUPER_USUARIOS):
+    niveis = list(UsuarioNivel)
+    for i in range(min(NUM_SUPER_USUARIOS, len(usuarios))):
+        usuario = usuarios[i]
         su = SuperUsuario(
-            nome=fake.company()
+            usuario_id=usuario.id,
+            nivel=UsuarioNivel.administrador
         )
         session.add(su)
         super_usuarios.append(su)
@@ -78,10 +82,13 @@ def criar_super_usuarios(session):
 
 
 def criar_usuarios(session):
+    """Cria usuarios com a nova estrutura (UUID id, email, senha hash nullable)."""
     usuarios = []
     for _ in range(NUM_USUARIOS):
         us = Usuario(
-            spotify_id=fake.uuid4(),
+            email=fake.email(),
+            password_hash=None,  # Usuários via Spotify não têm senha
+            spotify_id=f"spotify_{fake.uuid4()}",
             spotify_token=gerar_token_spotify(),
             spotify_refresh_token=gerar_token_spotify()
         )
@@ -93,16 +100,15 @@ def criar_usuarios(session):
 
 
 def criar_moderadores(session, usuarios, super_usuarios):
+    """Cria moderadores vinculados a usuarios e super_usuarios."""
     moderadores = []
-    niveis = list(ModeradorNivel)
     for su in super_usuarios:
         for _ in range(NUM_MODERADORES_POR_SUPER):
             usuario = random.choice(usuarios)
             # Evitar duplicidade de (usuario_id, super_usuario_id) se quiser, mas não é obrigatório
             mod = Moderador(
-                usuario_id=usuario.spotify_id,
+                usuario_id=usuario.id,
                 super_usuario_id=su.id,
-                nivel=random.choice(niveis)
             )
             session.add(mod)
             moderadores.append(mod)
@@ -112,12 +118,13 @@ def criar_moderadores(session, usuarios, super_usuarios):
 
 
 def criar_chats(session, usuarios):
+    """Cria chats vinculados aos usuarios pelo novo usuario_id (UUID)."""
     chats = []
     status_opts = list(ChatStatus)
     for usuario in usuarios:
         for _ in range(NUM_CHATS_POR_USUARIO):
             chat = Chat(
-                usuario_id=usuario.spotify_id,
+                usuario_id=usuario.id,
                 titulo=fake.sentence(nb_words=4)[:255],
                 status=random.choice(status_opts),
                 created_at=fake.date_time_between(start_date="-30d", end_date="now"),
@@ -157,6 +164,7 @@ def criar_perguntas_e_respostas(session, chats):
 
 
 def criar_feedbacks(session, respostas, usuarios):
+    """Cria feedbacks vinculados a respostas e usuarios pelo novo usuario_id (UUID)."""
     feedbacks = []
     tipos = list(FeedbackTipo)
     for resposta in respostas:
@@ -164,7 +172,7 @@ def criar_feedbacks(session, respostas, usuarios):
             usuario = random.choice(usuarios)
             fb = Feedback(
                 resposta_id=resposta.id,
-                usuario_id=usuario.spotify_id,
+                usuario_id=usuario.id,
                 tipo=random.choice(tipos),
                 comentario=fake.text(max_nb_chars=200) if random.random() > 0.5 else None,
                 created_at=resposta.created_at + timedelta(hours=random.randint(1, 72))
@@ -177,6 +185,7 @@ def criar_feedbacks(session, respostas, usuarios):
 
 
 def criar_documentos_e_fragmentos(session, super_usuarios, usuarios):
+    """Cria documentos vinculados a super_usuarios e usuarios pelo novo uploaded_by (UUID)."""
     documentos = []
     fragmentos = []
     for su in super_usuarios:
@@ -186,7 +195,7 @@ def criar_documentos_e_fragmentos(session, super_usuarios, usuarios):
                 titulo=fake.sentence(nb_words=5)[:255],
                 conteudo_original=fake.paragraph(nb_sentences=20),
                 tipo=random.choice(["pdf", "txt", "md", "docx"]),
-                uploaded_by=random.choice(usuarios).spotify_id,
+                uploaded_by=random.choice(usuarios).id,
                 ativo=random.choice([True, True, True, False])  # 75% ativo
             )
             session.add(doc)
@@ -245,10 +254,10 @@ def main():
 
         print("\n--- Iniciando população com dados mock ---\n")
 
-        # 1. SuperUsuarios
-        super_usuarios = criar_super_usuarios(session)
-        # 2. Usuarios
+        # 1. Usuarios (nenhuma dependência)
         usuarios = criar_usuarios(session)
+        # 2. SuperUsuarios (depende de usuarios)
+        super_usuarios = criar_super_usuarios(session, usuarios)
         # 3. Moderadores (depende de usuarios e super_usuarios)
         moderadores = criar_moderadores(session, usuarios, super_usuarios)
         # 4. Chats (depende de usuarios)

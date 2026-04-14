@@ -13,14 +13,13 @@ class ChatService:
         self.chat_repo   = ChatRepository()
         self.ollama_repo = OllamaRepository()
 
-    def iniciar_chat(self, spotify_id: str, titulo: str = "Nova conversa") -> dict:
-        """Cria um novo chat e garante que o usuário existe no banco."""
-        self.chat_repo.get_or_create_usuario(spotify_id)
-        chat = self.chat_repo.criar_chat(spotify_id, titulo)
+    def iniciar_chat(self, usuario_id: str, titulo: str = "Nova conversa") -> dict:
+        """Cria um novo chat para o usuário."""
+        chat = self.chat_repo.criar_chat(usuario_id, titulo)
         return {"chat_id": chat.id, "titulo": chat.titulo}
 
-    def listar_chats(self, spotify_id: str) -> list[dict]:
-        chats = self.chat_repo.listar_chats(spotify_id)
+    def listar_chats(self, usuario_id: str) -> list[dict]:
+        chats = self.chat_repo.listar_chats(usuario_id)
         return [
             {
                 "id":         c.id,
@@ -32,7 +31,7 @@ class ChatService:
             for c in chats
         ]
 
-    def enviar_mensagem(self, spotify_id: str, chat_id: int, mensagem: str) -> dict:
+    def enviar_mensagem(self, usuario_id: str, chat_id: int, mensagem: str) -> dict:
         """
         Fluxo completo:
         1. Verifica que o chat pertence ao usuário
@@ -42,7 +41,7 @@ class ChatService:
         5. Salva a resposta
         6. Retorna tudo pro frontend
         """
-        chat = self.chat_repo.get_chat(chat_id, spotify_id)
+        chat = self.chat_repo.get_chat(chat_id, usuario_id)
         if not chat:
             return None
 

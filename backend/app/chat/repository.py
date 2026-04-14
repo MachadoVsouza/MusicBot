@@ -4,23 +4,21 @@ from app.database.models import Chat, Pergunta, Resposta, Usuario
 
 class ChatRepository:
 
-    def get_or_create_usuario(self, spotify_id: str) -> Usuario:
-        """Cria o usuário no banco se ainda não existir."""
+    def get_or_create_usuario(self, usuario_id: str) -> Usuario:
+        """Retorna o usuário pelo ID. Note: Usuario deve ser criado via auth flow."""
         db = get_session()
         try:
-            usuario = db.get(Usuario, spotify_id)
+            usuario = db.get(Usuario, usuario_id)
             if not usuario:
-                usuario = Usuario(spotify_id=spotify_id)
-                db.add(usuario)
-                db.commit()
+                raise ValueError(f"Usuario {usuario_id} não encontrado. Crie via auth flow.")
             return usuario
         finally:
             db.close()
 
-    def criar_chat(self, spotify_id: str, titulo: str = "Nova conversa") -> Chat:
+    def criar_chat(self, usuario_id: str, titulo: str = "Nova conversa") -> Chat:
         db = get_session()
         try:
-            chat = Chat(usuario_id=spotify_id, titulo=titulo)
+            chat = Chat(usuario_id=usuario_id, titulo=titulo)
             db.add(chat)
             db.commit()
             db.refresh(chat)
@@ -28,21 +26,21 @@ class ChatRepository:
         finally:
             db.close()
 
-    def get_chat(self, chat_id: int, spotify_id: str) -> Chat | None:
+    def get_chat(self, chat_id: int, usuario_id: str) -> Chat | None:
         db = get_session()
         try:
             return db.query(Chat).filter(
                 Chat.id == chat_id,
-                Chat.usuario_id == spotify_id,
+                Chat.usuario_id == usuario_id,
             ).first()
         finally:
             db.close()
 
-    def listar_chats(self, spotify_id: str) -> list[Chat]:
+    def listar_chats(self, usuario_id: str) -> list[Chat]:
         db = get_session()
         try:
             return db.query(Chat).filter(
-                Chat.usuario_id == spotify_id,
+                Chat.usuario_id == usuario_id,
             ).order_by(Chat.updated_at.desc()).all()
         finally:
             db.close()

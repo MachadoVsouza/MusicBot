@@ -1,11 +1,11 @@
 from datetime import datetime, timezone
 from sqlalchemy import (
     String, Text, Integer, Boolean,
-    ForeignKey, Enum, DateTime, Column, Table
+    ForeignKey, Enum, DateTime, Column, Table, UUID
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database.connection import Base
-
+import uuid
 import enum
 
 
@@ -22,7 +22,8 @@ class FeedbackTipo(enum.Enum):
     report  = "report"
 
 
-class ModeradorNivel(enum.Enum):
+class UsuarioNivel(enum.Enum):
+    usuario       = "usuario"
     editor        = "editor"
     administrador = "administrador"
 
@@ -38,21 +39,28 @@ def now_utc():
 class Usuario(Base):
     __tablename__ = "usuario"
 
-    spotify_id            : Mapped[str]      = mapped_column(String, primary_key=True)
-    spotify_token         : Mapped[str|None] = mapped_column(Text)
-    spotify_refresh_token : Mapped[str|None] = mapped_column(Text)
+    id                    : Mapped[str]      = mapped_column(UUID, primary_key=True, default=uuid.uuid4)
+    email                 : Mapped[str]      = mapped_column(String(255), unique=True)
+    password_hash         : Mapped[str|None] = mapped_column(Text, nullable=True)
+    spotify_id            : Mapped[str|None] = mapped_column(String, unique=True, nullable=True)
+    spotify_token         : Mapped[str|None] = mapped_column(Text, nullable=True)
+    spotify_refresh_token : Mapped[str|None] = mapped_column(Text, nullable=True)
+    created_at            : Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
 
-    chats      : Mapped[list["Chat"]]      = relationship(back_populates="usuario")
-    moderadores: Mapped[list["Moderador"]] = relationship(back_populates="usuario")
+    chats           : Mapped[list["Chat"]]      = relationship(back_populates="usuario")
+    super_usuario   : Mapped["SuperUsuario|None"] = relationship(back_populates="usuario", uselist=False)
+    feedback        : Mapped[list["Feedback"]]  = relationship(back_populates="usuario")
+    documentos      : Mapped[list["Documento"]] = relationship(back_populates="uploaded_by_user")
 
 
 class SuperUsuario(Base):
     __tablename__ = "super_usuario"
 
-    id   : Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    nome : Mapped[str] = mapped_column(String(255))
+    id        : Mapped[int]      = mapped_column(Integer, primary_key=True, autoincrement=True)
+    usuario_id: Mapped[str]      = mapped_column(UUID, ForeignKey("usuario.id"), unique=True)
+    nivel     : Mapped[UsuarioNivel] = mapped_column(Enum(UsuarioNivel), default=UsuarioNivel.administrador)
 
-    moderadores: Mapped[list["Moderador"]] = relationship(back_populates="super_usuario")
+    usuario    : Mapped["Usuario"] = relationship(back_populates="super_usuario")
     documentos : Mapped[list["Documento"]] = relationship(back_populates="super_usuario")
 
 
@@ -60,19 +68,18 @@ class Moderador(Base):
     __tablename__ = "moderador"
 
     id               : Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    usuario_id       : Mapped[str] = mapped_column(ForeignKey("usuario.spotify_id"))
+    usuario_id       : Mapped[str] = mapped_column(UUID, ForeignKey("usuario.id"))
     super_usuario_id : Mapped[int] = mapped_column(ForeignKey("super_usuario.id"))
-    nivel            : Mapped[ModeradorNivel] = mapped_column(Enum(ModeradorNivel))
 
-    usuario      : Mapped["Usuario"]      = relationship(back_populates="moderadores")
-    super_usuario: Mapped["SuperUsuario"] = relationship(back_populates="moderadores")
+    usuario      : Mapped["Usuario"]      = relationship()
+    super_usuario: Mapped["SuperUsuario"] = relationship()
 
 
 class Chat(Base):
     __tablename__ = "chat"
 
     id         : Mapped[int]        = mapped_column(Integer, primary_key=True, autoincrement=True)
-    usuario_id : Mapped[str]        = mapped_column(ForeignKey("usuario.spotify_id"))
+    usuario_id : Mapped[str]        = mapped_column(UUID, ForeignKey("usuario.id"))
     titulo     : Mapped[str]        = mapped_column(String(255), default="Nova conversa")
     created_at : Mapped[datetime]   = mapped_column(DateTime(timezone=True), default=now_utc)
     updated_at : Mapped[datetime]   = mapped_column(DateTime(timezone=True), default=now_utc, onupdate=now_utc)
@@ -113,12 +120,13 @@ class Feedback(Base):
 
     id          : Mapped[int]          = mapped_column(Integer, primary_key=True, autoincrement=True)
     resposta_id : Mapped[int]          = mapped_column(ForeignKey("resposta.id"))
-    usuario_id  : Mapped[str]          = mapped_column(ForeignKey("usuario.spotify_id"))
+    usuario_id  : Mapped[str]          = mapped_column(UUID, ForeignKey("usuario.id"))
     tipo        : Mapped[FeedbackTipo] = mapped_column(Enum(FeedbackTipo))
     comentario  : Mapped[str|None]     = mapped_column(Text)
     created_at  : Mapped[datetime]     = mapped_column(DateTime(timezone=True), default=now_utc)
 
     resposta: Mapped["Resposta"] = relationship(back_populates="feedbacks")
+    usuario : Mapped["Usuario"]  = relationship(back_populates="feedback")
 
 
 class Documento(Base):
@@ -130,10 +138,11 @@ class Documento(Base):
     conteudo_original : Mapped[str]      = mapped_column(Text)
     tipo              : Mapped[str]      = mapped_column(String(50))
     uploaded_at       : Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
-    uploaded_by       : Mapped[str]      = mapped_column(ForeignKey("usuario.spotify_id"))
+    uploaded_by       : Mapped[str]      = mapped_column(UUID, ForeignKey("usuario.id"))
     ativo             : Mapped[bool]     = mapped_column(Boolean, default=True)
 
     super_usuario: Mapped["SuperUsuario"]    = relationship(back_populates="documentos")
+    uploaded_by_user: Mapped["Usuario"]      = relationship(back_populates="documentos")
     fragmentos   : Mapped[list["Fragmento"]] = relationship(back_populates="documento")
 
 
