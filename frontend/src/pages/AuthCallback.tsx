@@ -21,9 +21,7 @@ const AuthCallback = () => {
 
         if (profile) {
           if (flow === 'register') {
-            // Redirect to cadastro with profile loaded in context
-            loginWithProfile(profile);
-            navigate('/cadastro?step=confirm', { replace: true });
+            navigate('/registration-form', { replace: true });
           } else {
             loginWithProfile(profile);
             navigate('/chat', { replace: true });

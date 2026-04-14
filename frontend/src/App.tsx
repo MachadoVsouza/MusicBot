@@ -8,6 +8,7 @@ import Login from "./pages/Login";
 import Cadastro from "./pages/Cadastro";
 import Entrar from "./pages/Entrar";
 import RecuperarSenha from "./pages/RecuperarSenha";
+import RegistrationForm from "./pages/RegistrationForm";
 import AuthCallback from "./pages/AuthCallback";
 import UnderConstruction from "./pages/UnderConstruction";
 import NotFound from "./pages/NotFound";
@@ -26,18 +27,19 @@ const App = () => (
       <AuthProvider>
         <BrowserRouter>
           <Routes>
+            <Route path="*" element={<NotFound />} />
             <Route path="/" element={<Navigate to="/login" replace />} />
+            <Route path="/entrar" element={<Entrar />} />
             <Route path="/login" element={<Login />} />
             <Route path="/cadastro" element={<Cadastro />} />
-            <Route path="/entrar" element={<Entrar />} />
+            <Route path="/registration-form" element={<RegistrationForm />} />
+            <Route path="/profile" element={<Profile />} />
             <Route path="/recuperar-senha" element={<RecuperarSenha />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/chat" element={<Chat />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/base-conhecimento" element={<BaseConhecimento />} />
             <Route path="/under-construction" element={<UnderConstruction />} />
-            <Route path="*" element={<NotFound />} />
-            <Route path="/profile" element={<Profile />} />
           </Routes>
         </BrowserRouter>
       </AuthProvider>
