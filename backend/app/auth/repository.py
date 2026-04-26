@@ -41,15 +41,18 @@ class AuthRepository:
     def get_usuario_id(self) -> str | None:
         return session.get("usuario_id")
 
-    def get_or_create_usuario_by_spotify(self, spotify_id: str, email: str = "") -> Usuario:
+    # ── DB operations ─────────────────────────────────────────────────────────
+
+    def get_or_create_usuario_by_spotify(self, spotify_id: str, access_token: str = None, refresh_token: str = None) -> Usuario:
         db = get_session()
         try:
             usuario = db.query(Usuario).filter(Usuario.spotify_id == spotify_id).first()
             
             if not usuario:
                 usuario = Usuario(
-                    email=email or f"spotify_{spotify_id}@musicbot.local",
                     spotify_id=spotify_id,
+                    spotify_token=access_token,
+                    spotify_refresh_token=refresh_token,
                 )
                 db.add(usuario)
                 db.commit()
@@ -62,25 +65,22 @@ class AuthRepository:
     def get_usuario_by_spotify_id(self, spotify_id: str) -> Usuario | None:
         db = get_session()
         try:
-            usuario = db.query(Usuario).filter(Usuario.spotify_id == spotify_id).first()
-            return usuario
+            return db.query(Usuario).filter(Usuario.spotify_id == spotify_id).first()
         finally:
             db.close()
 
     def get_usuario_by_email(self, email: str) -> Usuario | None:
         db = get_session()
         try:
-            usuario = db.query(Usuario).filter(Usuario.email == email).first()
-            return usuario
+            return db.query(Usuario).filter(Usuario.email == email).first()
         finally:
             db.close()
 
-    def update_user_spotify_tokens(self, usuario_id: str, spotify_id: str, access_token: str, refresh_token: str | None) -> None:
+    def update_user_spotify_tokens(self, spotify_id: str, access_token: str, refresh_token: str | None) -> None:
         db = get_session()
         try:
-            usuario = db.get(Usuario, usuario_id)
+            usuario = db.get(Usuario, spotify_id)
             if usuario:
-                usuario.spotify_id = spotify_id
                 usuario.spotify_token = access_token
                 usuario.spotify_refresh_token = refresh_token
                 db.commit()
@@ -99,9 +99,9 @@ class AuthRepository:
                 usuario.spotify_refresh_token = spotify_refresh_token
             else:
                 usuario = Usuario(
+                    spotify_id=spotify_id,
                     email=email,
                     password_hash=password_hash,
-                    spotify_id=spotify_id,
                     spotify_token=spotify_token,
                     spotify_refresh_token=spotify_refresh_token,
                 )
@@ -113,10 +113,10 @@ class AuthRepository:
         finally:
             db.close()
 
-    def update_user_password(self, usuario_id: str, password_hash: str) -> None:
+    def update_user_password(self, spotify_id: str, password_hash: str) -> None:
         db = get_session()
         try:
-            usuario = db.get(Usuario, usuario_id)
+            usuario = db.get(Usuario, spotify_id)
             if usuario:
                 usuario.password_hash = password_hash
                 db.commit()

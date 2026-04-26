@@ -44,3 +44,5 @@ venv/
 # IDEs
 .vscode/
 .idea/
+
+wikipedia_files

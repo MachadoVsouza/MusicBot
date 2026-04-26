@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 from flask import current_app
 
@@ -21,7 +21,12 @@ def get_session():
 
 
 def init_db():
-    """Cria todas as tabelas no banco se não existirem."""
-    from app.database import models  # noqa: F401 — importa para registrar os modelos
+    """Cria a extensão pgvector e todas as tabelas."""
+    from app.database import models  # noqa: F401
     engine = get_engine()
+
+    with engine.connect() as conn:
+        conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+        conn.commit()
+
     Base.metadata.create_all(engine)

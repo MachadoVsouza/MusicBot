@@ -54,10 +54,7 @@ class AuthService:
         cfg  = current_app.config
         
         print(f"[DEBUG] exchange_code: code={code[:20]}...")
-        print(f"[DEBUG] SPOTIFY_TOKEN_URL={cfg['SPOTIFY_TOKEN_URL']}")
         print(f"[DEBUG] REDIRECT_URI={cfg['REDIRECT_URI']}")
-        print(f"[DEBUG] SPOTIFY_CLIENT_ID={cfg['SPOTIFY_CLIENT_ID']}")
-        print(f"[DEBUG] SPOTIFY_CLIENT_SECRET={'*' * 10 if cfg['SPOTIFY_CLIENT_SECRET'] else 'EMPTY'}")
         
         try:
             resp = requests.post(cfg["SPOTIFY_TOKEN_URL"], data={
@@ -104,14 +101,13 @@ class AuthService:
     def handle_spotify_callback(self) -> dict:
         """
         Após exchange_code, determina se é login (usuário existente) ou register (novo usuário).
-        Retorna {"flow": "login" | "register", "spotify_id": str, "profile": dict}
+        Cria o usuário automaticamente se for novo.
         """
         access_token = self.repo.get_access_token()
         if not access_token:
             print("[ERROR] No access_token in session")
             return {"flow": None, "spotify_id": None, "profile": None}
 
-        # Busca dados do Spotify
         profile = self.fetch_spotify_profile(access_token)
         if not profile:
             print("[ERROR] fetch_spotify_profile returned None")
@@ -123,89 +119,26 @@ class AuthService:
             return {"flow": None, "spotify_id": None, "profile": None}
 
         print(f"[SUCCESS] Got spotify_id: {spotify_id}")
-        # Armazena spotify_id na sessão
         self.repo.save_spotify_usuario_id(spotify_id)
 
-        # Verifica se usuário já existe
+        refresh_token = self.repo.get_refresh_token()
         usuario = self.repo.get_usuario_by_spotify_id(spotify_id)
         
         if usuario:
-            print(f"[SUCCESS] User exists: {usuario.id}")
-            # Usuário existente: atualiza tokens e loga
-            refresh_token = self.repo.get_refresh_token()
-            self.repo.update_user_spotify_tokens(
-                str(usuario.id), 
-                spotify_id, 
-                access_token, 
-                refresh_token
-            )
-            self.repo.save_usuario_id(str(usuario.id))
+            print(f"[SUCCESS] User exists: {usuario.spotify_id}")
+            self.repo.update_user_spotify_tokens(spotify_id, access_token, refresh_token)
+            self.repo.save_usuario_id(usuario.spotify_id)
             return {"flow": "login", "spotify_id": spotify_id, "profile": profile}
         else:
             print("[SUCCESS] New user, flow=register")
-            # Novo usuário: apenas salva tokens, não cria usuario_id ainda
-            # Salva refresh_token também para poder regar depois
             refresh_token = self.repo.get_refresh_token()
             self.repo.save_tokens(access_token, refresh_token)
             return {"flow": "register", "spotify_id": spotify_id, "profile": profile}
 
-    def create_or_update_usuario(self) -> str | None:
-        """
-        Após exchange_code, busca perfil do Spotify e cria/atualiza usuário no banco.
-        Retorna o usuario_id ou None se falhar.
-        """
-        access_token = self.repo.get_access_token()
-        if not access_token:
-            return None
-
-        # Busca dados do Spotify
-        profile = self.fetch_spotify_profile(access_token)
-        if not profile:
-            return None
-
-        spotify_id = profile.get("id")
-        email = profile.get("email", "")
-        
-        if not spotify_id:
-            return None
-
-        # Armazena spotify_id na sessão para ser usado em register_user() depois
-        self.repo.save_spotify_usuario_id(spotify_id)
-
-        # Cria/obtém usuário no banco
-        usuario = self.repo.get_or_create_usuario_by_spotify(spotify_id, email)
-        
-        # Atualiza tokens do Spotify
-        refresh_token = self.repo.get_refresh_token()
-        self.repo.update_user_spotify_tokens(
-            str(usuario.id), 
-            spotify_id, 
-            access_token, 
-            refresh_token
-        )
-        
-        # Armazena na sessão
-        self.repo.save_usuario_id(str(usuario.id))
-        
-        return str(usuario.id)
-
     # ── Registration ──────────────────────────────────────────────────────────
 
     def register_user(self, email: str, password: str) -> dict:
-        """
-        Registra um novo usuário com dados customizados.
-        
-        Esperado que spotify_id e tokens já estejam na sessão.
-        
-        Returns:
-        {
-            "success": bool,
-            "message": str,
-            "code": str,
-            "usuario_id": str (se sucesso)
-        }
-        """
-        # Valida que tokens do Spotify existem
+        """Registra um novo usuário com email e senha + dados Spotify da sessão."""
         spotify_id = self.repo.get_spotify_usuario_id()
         access_token = self.repo.get_access_token()
         refresh_token = self.repo.get_refresh_token()
@@ -217,7 +150,6 @@ class AuthService:
                 "code": "missing_spotify_tokens"
             }
         
-        # Hash da senha
         try:
             password_hash = generate_password_hash(password, method='pbkdf2:sha256')
         except Exception as e:
@@ -227,7 +159,6 @@ class AuthService:
                 "code": "password_hash_error"
             }
         
-        # Cria/atualiza usuário no banco
         try:
             usuario = self.repo.create_user_with_password(
                 email=email,
@@ -237,13 +168,12 @@ class AuthService:
                 spotify_refresh_token=refresh_token
             )
             
-            # Armazena usuario_id na sessão (faz login automático)
-            self.repo.save_usuario_id(str(usuario.id))
+            self.repo.save_usuario_id(usuario.spotify_id)
             
             return {
                 "success": True,
                 "message": "Usuário criado com sucesso!",
-                "usuario_id": str(usuario.id)
+                "usuario_id": usuario.spotify_id
             }
         except Exception as e:
             return {
@@ -253,95 +183,44 @@ class AuthService:
             }
 
     def login_with_password(self, email: str, password: str) -> dict:
-        """
-        Autentica um usuário com email e senha.
-        
-        Returns:
-        {
-            "success": bool,
-            "message": str,
-            "usuario_id": str (se sucesso)
-        }
-        """
+        """Autentica um usuário com email e senha."""
         from werkzeug.security import check_password_hash
         
         try:
             usuario = self.repo.get_usuario_by_email(email)
             
             if not usuario:
-                return {
-                    "success": False,
-                    "message": "Email ou senha inválidos"
-                }
+                return {"success": False, "message": "Email ou senha inválidos"}
             
-            # Verifica se o usuário tem password_hash
             if not usuario.password_hash:
-                return {
-                    "success": False,
-                    "message": "Esta conta não possui senha. Use Spotify para fazer login."
-                }
+                return {"success": False, "message": "Esta conta não possui senha. Use Spotify para fazer login."}
             
-            # Verifica a senha
             if not check_password_hash(usuario.password_hash, password):
-                return {
-                    "success": False,
-                    "message": "Email ou senha inválidos"
-                }
+                return {"success": False, "message": "Email ou senha inválidos"}
             
-            # Salva usuario_id na sessão (faz login automático)
-            self.repo.save_usuario_id(str(usuario.id))
+            self.repo.save_usuario_id(usuario.spotify_id)
             
             return {
                 "success": True,
                 "message": "Login realizado com sucesso!",
-                "usuario_id": str(usuario.id)
+                "usuario_id": usuario.spotify_id
             }
         except Exception as e:
-            return {
-                "success": False,
-                "message": f"Erro ao fazer login: {str(e)}"
-            }
+            return {"success": False, "message": f"Erro ao fazer login: {str(e)}"}
 
     def set_user_password(self, password: str) -> dict:
-        """
-        Define ou atualiza a senha de um usuário autenticado via Spotify.
-        
-        Returns:
-        {
-            "success": bool,
-            "message": str,
-            "code": str (se erro)
-        }
-        """
-        from werkzeug.security import generate_password_hash
-        
+        """Define ou atualiza a senha de um usuário autenticado."""
         try:
-            # Obtém o usuario_id da sessão (deve estar autenticado)
             usuario_id = self.repo.get_usuario_id()
-            
             if not usuario_id:
-                return {
-                    "success": False,
-                    "message": "Usuário não autenticado",
-                    "code": "not_authenticated"
-                }
+                return {"success": False, "message": "Usuário não autenticado", "code": "not_authenticated"}
             
-            # Hash da senha
             password_hash = generate_password_hash(password, method='pbkdf2:sha256')
-            
-            # Atualiza a senha no banco
             self.repo.update_user_password(usuario_id, password_hash)
             
-            return {
-                "success": True,
-                "message": "Senha definida com sucesso!"
-            }
+            return {"success": True, "message": "Senha definida com sucesso!"}
         except Exception as e:
-            return {
-                "success": False,
-                "message": f"Erro ao definir senha: {str(e)}",
-                "code": "password_update_error"
-            }
+            return {"success": False, "message": f"Erro ao definir senha: {str(e)}", "code": "password_update_error"}
 
     # ── Session ───────────────────────────────────────────────────────────────
 

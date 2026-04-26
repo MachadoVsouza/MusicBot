@@ -1,7 +1,7 @@
 services:
 
   db:
-    image: postgres:16-alpine
+    image: pgvector/pgvector:pg16
     container_name: MusicBot_DB
     restart: unless-stopped
     environment:
@@ -26,13 +26,14 @@ services:
       - "11434:11434"
     volumes:
       - ollama_data:/root/.ollama
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
+
+#    deploy:
+#      resources:
+#        reservations:
+#          devices:
+#            - driver: nvidia
+#              count: 1
+#              capabilities: [gpu]
     healthcheck:
       test: ["CMD-SHELL", "ollama list | grep -q 'qwen:4b' || exit 1"]
       interval: 30s
@@ -65,8 +66,10 @@ services:
     environment:
       DATABASE_URL:          postgresql://admin:admin@db:5432/MusicBot
       APP_SECRET_KEY:        musicbot-dev-secret-key
-      SPOTIFY_REDIRECT_URI:  http://127.0.0.1:5000/auth/callback
-      FRONTEND_URL:          http://localhost:8080
+      SPOTIFY_CLIENT_ID:     ${SPOTIFY_CLIENT_ID}
+      SPOTIFY_CLIENT_SECRET: ${SPOTIFY_CLIENT_SECRET}
+      SPOTIFY_REDIRECT_URI:  http://127.0.0.1:8080/api/auth/callback
+      FRONTEND_URL:          http://127.0.0.1:8080
       OLLAMA_BASE_URL:       http://ollama:11434
       OLLAMA_MODEL:          qwen:4b
       OLLAMA_KEEP_ALIVE:     30s

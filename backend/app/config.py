@@ -17,7 +17,7 @@ class Config:
 
     # URLs
     FRONTEND_URL  = os.getenv("FRONTEND_URL",  "http://127.0.0.1:8080")
-    REDIRECT_URI  = os.getenv("SPOTIFY_REDIRECT_URI", "http://127.0.0.1:5000/auth/callback")
+    REDIRECT_URI  = os.getenv("SPOTIFY_REDIRECT_URI", "http://127.0.0.1:8080/api/auth/callback")
 
     # Spotify
     SPOTIFY_CLIENT_ID = os.getenv("SPOTIFY_CLIENT_ID", "b5727e21ded847928278e6fe1782060f")

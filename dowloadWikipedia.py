@@ -1,3 +1,4 @@
+from os import mkdir
 import wikipedia
 import os
 
@@ -30,9 +31,14 @@ def baixar_artigos(artigos, idiomas):
         artigos (list): Lista de títulos dos artigos.
         idiomas (list): Lista de tuplas (codigo_idioma, nome_pasta).
     """
+
+    # Pasta principal
+    pasta_principal = "wikipedia_files"
+    os.makedirs(pasta_principal, exist_ok=True)
+
     # Criar pastas para cada idioma (se não existirem)
     for _, pasta in idiomas:
-        os.makedirs(pasta, exist_ok=True)
+        os.makedirs(os.path.join(pasta_principal, pasta), exist_ok=True)
 
     for artigo in artigos:
         print(f"\n--- Processando: {artigo} ---")
@@ -40,7 +46,7 @@ def baixar_artigos(artigos, idiomas):
 
         for codigo, pasta in idiomas:
             nome_arquivo = f"{nome_base}_{codigo}.txt"
-            caminho = os.path.join(pasta, nome_arquivo)
+            caminho = os.path.join(pasta_principal, pasta, nome_arquivo)  # CORRIGIDO: inclui pasta_principal
 
             # Verificar se já existe
             if os.path.exists(caminho):
@@ -62,7 +68,6 @@ def baixar_artigos(artigos, idiomas):
                 print(f"  ✘ [{codigo.upper()}] Erro inesperado: {e}")
 
     print("\n✅ Processamento concluído!")
-
 
 # ============================================
 # EXECUÇÃO
