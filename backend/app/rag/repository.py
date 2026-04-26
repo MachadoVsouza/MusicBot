@@ -94,27 +94,22 @@ class RagRepository:
     # ── Fragmento ─────────────────────────────────────────────────────────────
 
     def verificar_duplicata(self, conteudo: str) -> bool:
-        """
-        Verifica se já existe conteúdo similar na base.
-        Retorna True se for duplicata (distância coseno abaixo do threshold).
-        """
         embedding = get_embedding(conteudo)
         if not embedding:
             return False
 
         db = get_session()
         try:
-            similar = (
-                db.query(Fragmento)
-                .filter(Fragmento.embedding.isnot(None))
-                .order_by(Fragmento.embedding.cosine_distance(embedding))
-                .first()
-            )
-            if not similar:
+            from sqlalchemy import text
+            result = db.execute(
+                text("SELECT embedding <=> :emb AS distancia FROM fragmento WHERE embedding IS NOT NULL ORDER BY distancia LIMIT 1"),
+                {"emb": str(embedding)}
+            ).first()
+
+            if not result:
                 return False
 
-            distancia = similar.embedding.cosine_distance(embedding)
-            return distancia < SIMILARITY_THRESHOLD
+            return result.distancia < SIMILARITY_THRESHOLD
         finally:
             db.close()
 
@@ -139,25 +134,28 @@ class RagRepository:
             db.close()
 
     def buscar_similares(self, pergunta: str, limite: int = 3) -> list[Fragmento]:
-        """Busca fragmentos mais similares usando distância coseno."""
         embedding = get_embedding(pergunta)
         if not embedding:
             return []
 
         db = get_session()
         try:
-            return (
-                db.query(Fragmento)
-                .join(Documento)
-                .filter(
-                    Fragmento.embedding.isnot(None),
-                    Documento.status == DocumentoStatus.aprovado,
-                    Documento.ativo  == True,
-                )
-                .order_by(Fragmento.embedding.cosine_distance(embedding))
-                .limit(limite)
-                .all()
-            )
+            from sqlalchemy import text
+            ids = db.execute(
+                text("""
+                SELECT f.id FROM fragmento f
+                JOIN documento d ON d.id = f.documento_id
+                WHERE f.embedding IS NOT NULL
+                  AND d.status = :status
+                  AND d.ativo = :ativo
+                ORDER BY f.embedding <=> :emb
+                LIMIT :limite
+            """),
+                {"emb": str(embedding), "status": "aprovado", "ativo": True, "limite": limite}
+            ).fetchall()
+
+            fragmento_ids = [row.id for row in ids]
+            return db.query(Fragmento).filter(Fragmento.id.in_(fragmento_ids)).all()
         finally:
             db.close()
 
