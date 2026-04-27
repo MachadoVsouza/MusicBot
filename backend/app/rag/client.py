@@ -1,25 +1,27 @@
-import requests
+import os
 import logging
-from flask import current_app
+from sentence_transformers import SentenceTransformer
+from huggingface_hub import login
 
 logger = logging.getLogger(__name__)
 
-EMBEDDING_MODEL = "nomic-embed-text"  # modelo leve de embeddings, roda local no Ollama
+EMBEDDING_MODEL = "google/embeddinggemma-300m"
+
+
+try:
+    login(token=os.getenv("HUGGINGFACE_TOKEN"))
+    embedder = SentenceTransformer(EMBEDDING_MODEL)
+except Exception as e:
+    logger.error("Erro ao carregar o modelo de embeddings: %s", e)
+    embedder = None
 
 
 def get_embedding(text: str) -> list[float] | None:
-    """
-    Gera o embedding de um texto usando o Ollama local.
-    Retorna uma lista de 768 floats.
-    """
+    if embedder is None:
+        logger.error("Embedder não inicializado.")
+        return None
     try:
-        resp = requests.post(
-            f"{current_app.config['OLLAMA_BASE_URL']}/api/embeddings",
-            json={"model": EMBEDDING_MODEL, "prompt": text},
-            timeout=30,
-        )
-        resp.raise_for_status()
-        return resp.json()["embedding"]
+        return embedder.encode(text).tolist()
     except Exception as e:
         logger.error("Erro ao gerar embedding: %s", e)
         return None

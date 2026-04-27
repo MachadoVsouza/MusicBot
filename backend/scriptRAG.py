@@ -16,7 +16,7 @@ cookies = {"session": SESSION}
 
 
 def upload(arquivo: Path) -> int | None:
-    print(f"📤 Enviando: {arquivo.stem}...")
+    print(f"Enviando: {arquivo.stem}...")
     try:
         conteudo = arquivo.read_text(encoding="utf-8", errors="ignore")
         resp = requests.post(
@@ -33,24 +33,24 @@ def upload(arquivo: Path) -> int | None:
         data = resp.json()
 
         if data.get("duplicata"):
-            print(f"  ⚠️  Duplicata ignorada: {arquivo.stem}")
+            print(f"  Aviso: Duplicata ignorada: {arquivo.stem}")
             return None
 
         if "erro" in data:
-            print(f"  ❌ Erro: {data['erro']}")
+            print(f"  Erro: {data['erro']}")
             return None
 
         doc_id = data.get("documento_id")
-        print(f"  ✅ Enviado! ID: {doc_id} | Status: {data.get('status')}")
+        print(f"  Enviado! ID: {doc_id} | Status: {data.get('status')}")
         return doc_id
 
     except Exception as e:
-        print(f"  ❌ Falha: {e}")
+        print(f"  Falha: {e}")
         return None
 
 
 def aprovar(doc_id: int) -> None:
-    print(f"🔍 Aprovando documento {doc_id}...")
+    print(f"Aprovando documento {doc_id}...")
     try:
         resp = requests.post(
             f"{BASE_URL}/rag/documentos/{doc_id}/aprovar",
@@ -58,9 +58,9 @@ def aprovar(doc_id: int) -> None:
             timeout=60,
         )
         data = resp.json()
-        print(f"  ✅ Aprovado! Chunks: {data.get('indexados')} indexados, {data.get('falhos')} falhos")
+        print(f"  Aprovado! Chunks: {data.get('indexados')} indexados, {data.get('falhos')} falhos")
     except Exception as e:
-        print(f"  ❌ Falha ao aprovar: {e}")
+        print(f"  Falha ao aprovar: {e}")
 
 
 def main():
@@ -71,7 +71,7 @@ def main():
         print(f"Nenhum arquivo .txt encontrado em {pasta}")
         return
 
-    print(f"\n📁 {len(arquivos)} arquivo(s) encontrado(s) em {pasta}\n")
+    print(f"\n{len(arquivos)} arquivo(s) encontrado(s) em {pasta}\n")
 
     ids = []
     for arquivo in arquivos:
@@ -83,13 +83,12 @@ def main():
         print("\nNenhum documento novo para aprovar.")
         return
 
-    print(f"\n⏳ Aprovando {len(ids)} documento(s)...\n")
+    print(f"\nAprovando {len(ids)} documento(s)...\n")
     for doc_id in ids:
         aprovar(doc_id)
 
-    print(f"\n🎉 Concluído! {len(ids)} documento(s) indexado(s).")
+    print(f"\nConcluido! {len(ids)} documento(s) indexado(s).")
 
 
 if __name__ == "__main__":
     main()
-EOF
