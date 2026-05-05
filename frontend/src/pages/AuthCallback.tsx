@@ -49,11 +49,11 @@ const AuthCallback = () => {
         <MusicbotLogo />
         {status === 'loading' ? (
           <>
-            <Loader2 size={32} className="animate-spin text-teal" />
+            <Loader2 size={32} className="animate-spin text-green-bright" />
             <p className="text-slate text-sm text-center">Autenticando com Spotify...</p>
           </>
         ) : (
-          <p className="text-magenta text-sm text-center">
+          <p className="text-[#E91429] text-sm text-center">
             Falha na autenticação. Redirecionando...
           </p>
         )}

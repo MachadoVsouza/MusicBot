@@ -86,9 +86,9 @@ const Entrar = () => {
         <h2 className="font-display font-bold text-xl text-off-white">Entrar no Musicbot</h2>
 
         {error && (
-          <div className="w-full px-4 py-3 rounded-lg bg-red-500/20 border border-red-500/50 flex items-start gap-3">
+          <div className="w-full px-4 py-3 rounded-lg bg-[#E9142920] border border-[#E9142940] flex items-start gap-3">
             <AlertCircle size={18} className="text-red-400 flex-shrink-0 mt-0.5" />
-            <p className="text-red-300 text-sm">{error}</p>
+            <p className="text-[#E91429] text-sm">{error}</p>
           </div>
         )}
 
@@ -101,7 +101,7 @@ const Entrar = () => {
               value={email}
               onChange={(e) => { setEmail(e.target.value); setError(null); }}
               placeholder="seu@email.com"
-              className="w-full px-4 py-3 rounded-lg bg-slate/10 border border-slate/30 text-off-white placeholder:text-slate/50 focus:outline-none focus:border-teal focus:ring-1 focus:ring-teal transition-all"
+              className="w-full px-4 py-3 rounded-lg bg-[#282828] border border-[#3E3E3E] text-off-white placeholder:text-slate/50 focus:outline-none focus:border-[#1DB954] focus:ring-1 focus:ring-[#1DB954] transition-all"
               disabled={loading}
             />
           </div>
@@ -115,7 +115,7 @@ const Entrar = () => {
                 value={password}
                 onChange={(e) => { setPassword(e.target.value); setError(null); }}
                 placeholder="Sua senha"
-                className="w-full px-4 py-3 rounded-lg bg-slate/10 border border-slate/30 text-off-white placeholder:text-slate/50 focus:outline-none focus:border-teal focus:ring-1 focus:ring-teal transition-all pr-12"
+                className="w-full px-4 py-3 rounded-lg bg-[#282828] border border-[#3E3E3E] text-off-white placeholder:text-slate/50 focus:outline-none focus:border-[#1DB954] focus:ring-1 focus:ring-[#1DB954] transition-all pr-12"
                 disabled={loading}
               />
               <button
@@ -131,7 +131,7 @@ const Entrar = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 px-4 rounded-xl bg-magenta text-off-white font-body font-semibold text-base hover:brightness-110 transition-all duration-200 hover:scale-[1.02] flex items-center justify-center gap-2 disabled:opacity-70"
+            className="w-full py-3 px-4 rounded-xl bg-green text-off-white font-body font-semibold text-base hover:brightness-110 transition-all duration-200 hover:scale-[1.02] flex items-center justify-center gap-2 disabled:opacity-70"
           >
             {loading ? (
               <>
@@ -149,7 +149,7 @@ const Entrar = () => {
         <button
           onClick={handleSpotifyLogin}
           disabled={loading}
-          className="w-full py-3 px-4 rounded-xl bg-teal text-off-white font-body font-semibold text-base hover:brightness-110 transition-all duration-200 hover:scale-[1.02] flex items-center justify-center gap-3 disabled:opacity-70"
+          className="w-full py-3 px-4 rounded-xl bg-green-bright text-off-white font-body font-semibold text-base hover:brightness-110 transition-all duration-200 hover:scale-[1.02] flex items-center justify-center gap-3 disabled:opacity-70"
         >
           {loading ? (
             <Loader2 size={20} className="animate-spin" />
@@ -163,14 +163,14 @@ const Entrar = () => {
 
         <button
           onClick={() => navigate('/recuperar-senha')}
-          className="text-slate text-sm hover:text-teal transition-colors duration-200"
+          className="text-slate text-sm hover:text-green-bright transition-colors duration-200"
         >
           Recuperar senha
         </button>
 
         <p className="text-slate text-sm">
           Não tem uma conta?{' '}
-          <button onClick={() => navigate('/cadastro')} className="text-teal hover:underline">
+          <button onClick={() => navigate('/cadastro')} className="text-green-bright hover:underline">
             Criar conta
           </button>
         </p>

@@ -15,13 +15,13 @@ const Login = () => {
         <div className="w-full h-px bg-[hsla(0,0%,100%,0.1)]" />
         <button
           onClick={() => navigate('/cadastro')}
-          className="w-full py-3 px-4 rounded-xl bg-magenta text-off-white font-body font-semibold text-base hover:brightness-110 transition-all duration-200 hover:scale-[1.02]"
+          className="w-full py-3 px-4 rounded-xl bg-green text-off-white font-body font-semibold tracking-wide text-base hover:brightness-110 transition-all duration-200 hover:scale-[1.02]"
         >
           Criar nova conta
         </button>
         <button
           onClick={() => navigate('/entrar')}
-          className="w-full py-3 px-4 rounded-xl border border-teal text-off-white font-body font-semibold text-base hover:bg-[hsla(170,71%,41%,0.1)] transition-all duration-200 hover:scale-[1.02]"
+          className="w-full py-3 px-4 rounded-xl border border-green-bright text-off-white font-body font-semibold text-base hover:bg-[#1DB95420] transition-all duration-200 hover:scale-[1.02]"
         >
           Fazer login
         </button>

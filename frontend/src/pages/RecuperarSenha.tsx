@@ -21,25 +21,25 @@ const RecuperarSenha = () => {
 
         {sent ? (
           <div className="flex flex-col items-center gap-3 py-4">
-            <CheckCircle size={48} className="text-teal" />
-            <p className="text-teal text-center font-body">
+            <CheckCircle size={48} className="text-green-bright" />
+            <p className="text-green-bright text-center font-body">
               E-mail enviado! Verifique sua caixa de entrada.
             </p>
           </div>
         ) : (
           <>
-            <p className="text-slate text-center text-sm">
+            <p className="text-gray-light text-center text-sm">
               Informe seu e-mail para receber as instruções.
             </p>
             <form onSubmit={handleSubmit} className="w-full flex flex-col gap-4">
               <input
                 type="email"
                 placeholder="E-mail"
-                className="w-full px-4 py-3 rounded-xl glass text-off-white placeholder:text-slate text-sm font-body focus:outline-none focus:border-teal transition-colors"
+                className="w-full px-4 py-3 rounded-xl bg-[#282828] border border-[#3E3E3E] text-off-white placeholder:text-gray-light text-sm font-body focus:outline-none focus:border-[#1DB954] focus:ring-1 focus:ring-[#1DB954] transition-colors"
               />
               <button
                 type="submit"
-                className="w-full py-3 px-4 rounded-xl bg-magenta text-off-white font-body font-semibold text-base hover:brightness-110 transition-all duration-200 hover:scale-[1.02]"
+                className="w-full py-3 px-4 rounded-xl bg-green text-off-white font-body font-semibold text-base hover:brightness-110 transition-all duration-200 hover:scale-[1.02]"
               >
                 Enviar instruções
               </button>
@@ -49,7 +49,7 @@ const RecuperarSenha = () => {
 
         <button
           onClick={() => navigate('/entrar')}
-          className="text-slate text-sm hover:text-teal transition-colors duration-200"
+          className="text-gray-light text-sm hover:text-green-bright transition-colors duration-200"
         >
           ← Voltar para o login
         </button>

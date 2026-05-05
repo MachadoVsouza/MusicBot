@@ -43,14 +43,14 @@ const UnderConstruction = () => {
     <AuthCard>
       <div className="flex flex-col items-center gap-6">
         <MusicbotLogo />
-        <Construction size={48} className="text-gold" />
+        <Construction size={48} className="text-[#1DB954]" />
         <h2 className="font-display font-bold text-2xl text-off-white">Em Construção</h2>
         <p className="text-slate text-center text-sm">
           Estamos trabalhando no chat. Em breve estará disponível!
         </p>
         <button
           onClick={handleLogout}
-          className="w-full py-3 px-4 rounded-xl border border-teal text-off-white font-body font-semibold text-base hover:bg-[hsla(170,71%,41%,0.1)] transition-all duration-200 hover:scale-[1.02]"
+          className="w-full py-3 px-4 rounded-xl border border-teal text-off-white font-body font-semibold text-base hover:bg-[#1DB95420] transition-all duration-200 hover:scale-[1.02]"
         >
           Sair
         </button>

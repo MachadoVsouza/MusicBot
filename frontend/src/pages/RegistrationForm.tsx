@@ -108,22 +108,22 @@ const RegistrationForm = () => {
       <div className="flex flex-col items-center gap-6">
         <MusicbotLogo size="lg" />
         <h2 className="font-display font-bold text-xl text-off-white">Complete seu cadastro</h2>
-        <p className="text-slate text-center text-sm">
+        <p className="text-gray-light text-center text-sm">
           Sua conta está conectada ao Spotify. Agora preencha seus dados para criar sua senha.
         </p>
 
         <form onSubmit={handleSubmit} className="w-full space-y-4">
           {/* Erro Alert */}
           {error && (
-            <div className="p-3 rounded-lg bg-red-500/20 border border-red-500/50 flex items-start gap-3">
+            <div className="p-3 rounded-lg bg-[#E9142920] border border-[#E9142940] flex items-start gap-3">
               <AlertCircle size={20} className="text-red-400 flex-shrink-0 mt-0.5" />
-              <p className="text-red-300 text-sm">{error}</p>
+              <p className="text-[#FF4444] text-sm">{error}</p>
             </div>
           )}
 
           {/* Email */}
           <div className="space-y-2">
-            <label htmlFor="email" className="block text-sm font-medium text-slate">Email</label>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-light">Email</label>
             <input
               id="email"
               type="email"
@@ -131,14 +131,14 @@ const RegistrationForm = () => {
               value={formData.email}
               onChange={handleChange}
               placeholder="seu@email.com"
-              className="w-full px-4 py-2 rounded-lg bg-slate/10 border border-slate/30 text-off-white placeholder:text-slate/50 focus:outline-none focus:border-teal focus:ring-1 focus:ring-teal transition-all"
+              className="w-full px-4 py-2 rounded-lg bg-[#282828] border border-[#3E3E3E] text-off-white placeholder:text-gray-light/50 focus:outline-none focus:border-[#1DB954] focus:ring-1 focus:ring-[#1DB954] transition-all"
               disabled={loading}
             />
           </div>
 
           {/* Senha */}
           <div className="space-y-2">
-            <label htmlFor="password" className="block text-sm font-medium text-slate">Senha</label>
+            <label htmlFor="password" className="block text-sm font-medium text-gray-light">Senha</label>
             <input
               id="password"
               type="password"
@@ -146,14 +146,14 @@ const RegistrationForm = () => {
               value={formData.password}
               onChange={handleChange}
               placeholder="Mínimo 6 caracteres"
-              className="w-full px-4 py-2 rounded-lg bg-slate/10 border border-slate/30 text-off-white placeholder:text-slate/50 focus:outline-none focus:border-teal focus:ring-1 focus:ring-teal transition-all"
+              className="w-full px-4 py-2 rounded-lg bg-[#282828] border border-[#3E3E3E] text-off-white placeholder:text-gray-light/50 focus:outline-none focus:border-[#1DB954] focus:ring-1 focus:ring-[#1DB954] transition-all"
               disabled={loading}
             />
           </div>
 
           {/* Confirmar Senha */}
           <div className="space-y-2">
-            <label htmlFor="confirmPassword" className="block text-sm font-medium text-slate">Confirmar senha</label>
+            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-light">Confirmar senha</label>
             <input
               id="confirmPassword"
               type="password"
@@ -161,7 +161,7 @@ const RegistrationForm = () => {
               value={formData.confirmPassword}
               onChange={handleChange}
               placeholder="Confirme sua senha"
-              className="w-full px-4 py-2 rounded-lg bg-slate/10 border border-slate/30 text-off-white placeholder:text-slate/50 focus:outline-none focus:border-teal focus:ring-1 focus:ring-teal transition-all"
+              className="w-full px-4 py-2 rounded-lg bg-[#282828] border border-[#3E3E3E] text-off-white placeholder:text-gray-light/50 focus:outline-none focus:border-[#1DB954] focus:ring-1 focus:ring-[#1DB954] transition-all"
               disabled={loading}
             />
           </div>
@@ -170,7 +170,7 @@ const RegistrationForm = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 px-4 rounded-xl bg-magenta text-off-white font-body font-semibold text-base hover:brightness-110 transition-all duration-200 hover:scale-[1.02] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="w-full py-3 px-4 rounded-xl bg-greentext-off-white font-body font-semibold text-base hover:brightness-110 transition-all duration-200 hover:scale-[1.02] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {loading ? (
               <>
@@ -187,7 +187,7 @@ const RegistrationForm = () => {
             type="button"
             onClick={() => navigate('/login', { replace: true })}
             disabled={loading}
-            className="w-full text-slate text-sm hover:text-teal transition-colors"
+            className="w-full text-gray-light text-sm hover:text-green-bright transition-colors"
           >
             Voltar para login
           </button>

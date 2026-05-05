@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Figtree:wght@300;400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,48 +6,48 @@
 
 @layer base {
   :root {
-    --background: 220 30% 7%;
-    --foreground: 230 20% 97%;
+    --background: 0 0% 7%;
+    --foreground: 0 0% 100%;
 
-    --card: 220 30% 7%;
-    --card-foreground: 230 20% 97%;
+    --card: 0 0% 9%;
+    --card-foreground: 0 0% 100%;
 
-    --popover: 220 30% 10%;
-    --popover-foreground: 230 20% 97%;
+    --popover: 0 0% 11%;
+    --popover-foreground: 0 0% 100%;
 
-    --primary: 342 74% 57%;
-    --primary-foreground: 230 20% 97%;
+    --primary: 141 73% 42%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 170 71% 41%;
-    --secondary-foreground: 230 20% 97%;
+    --secondary: 141 63% 49%;
+    --secondary-foreground: 0 0% 7%;
 
-    --muted: 215 10% 45%;
-    --muted-foreground: 215 10% 45%;
+    --muted: 0 0% 70%;
+    --muted-foreground: 0 0% 70%;
 
-    --accent: 45 87% 62%;
-    --accent-foreground: 220 30% 7%;
+    --accent: 0 0% 100%;
+    --accent-foreground: 0 0% 7%;
 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 230 20% 97%;
+    --destructive: 0 74% 42%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 100% / 0.1;
-    --input: 0 0% 100% / 0.1;
-    --ring: 342 74% 57%;
+    --border: 0 0% 100% / 0.08;
+    --input: 0 0% 100% / 0.08;
+    --ring: 141 73% 42%;
 
     --radius: 0.75rem;
 
-    /* Musicbot custom tokens */
-    --midnight-indigo: 220 30% 7%;
-    --electric-magenta: 342 74% 57%;
-    --teal-echo: 170 71% 41%;
-    --warm-gold: 45 87% 62%;
-    --paper-off-white: 230 20% 97%;
-    --slate-gray: 215 10% 45%;
+    /* Musicbot custom tokens — atualizados para Spotify */
+    --midnight-indigo: 0 0% 7%;
+    --black: 0 0% 7%;
+    --spotify-green: 141 73% 42%;
+    --spotify-green-bright: 141 63% 49%;
+    --white: 0 0% 100%;
+    --gray-light: 0 0% 70%;
 
-    --glass-bg: 0 0% 100% / 0.06;
-    --glass-border: 0 0% 100% / 0.1;
-    --surface-card: 0 0% 100% / 0.04;
-    --surface-hover: 0 0% 100% / 0.08;
+    --glass-bg: 0 0% 11% / 1;
+    --glass-border: 0 0% 100% / 0.08;
+    --surface-card: 0 0% 11%;
+    --surface-hover: 0 0% 17%;
   }
 }
 
@@ -64,82 +64,83 @@
 
 @layer utilities {
   .glass {
-    background: hsla(var(--glass-bg));
-    border: 1px solid hsla(var(--glass-border));
-    backdrop-filter: blur(16px);
+    background: hsl(0 0% 11%);
+    border: 1px solid hsla(0, 0%, 100%, 0.08);
+    backdrop-filter: blur(4px);
   }
 
   .glass-strong {
-    background: hsla(0, 0%, 100%, 0.08);
-    border: 1px solid hsla(var(--glass-border));
-    backdrop-filter: blur(24px);
+    background: hsl(0 0% 15%);
+    border: 1px solid hsla(0, 0%, 100%, 0.1);
+    backdrop-filter: blur(8px);
   }
 
   .font-display {
-    font-family: 'Syne', sans-serif;
+    font-family: 'Figtree', sans-serif;
   }
 
   .font-body {
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Figtree', sans-serif;
   }
 
   .font-mono-label {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Figtree', sans-serif;
+    font-weight: 500;
+    letter-spacing: 0.02em;
   }
 
   .music-texture {
-    background-image:
-      repeating-linear-gradient(
-        0deg,
-        transparent,
-        transparent 11px,
-        hsla(0, 0%, 100%, 0.015) 11px,
-        hsla(0, 0%, 100%, 0.015) 12px
-      );
+    background-image: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 11px,
+      hsla(0, 0%, 100%, 0.008) 11px,
+      hsla(0, 0%, 100%, 0.008) 12px
+    );
   }
 
   .text-off-white {
-    color: hsl(var(--paper-off-white));
+    color: hsl(var(--white));
   }
 
-  .text-slate {
-    color: hsl(var(--slate-gray));
+  .text-gray-light {
+    color: hsl(var(--gray-light));
   }
 
-  .bg-midnight {
-    background-color: hsl(var(--midnight-indigo));
+  .bg-black {
+    background-color: hsl(var(--black));
   }
 
-  .bg-magenta {
-    background-color: hsl(var(--electric-magenta));
+  .bg-green {
+    background-color: hsl(var(--spotify-green));
   }
 
-  .bg-teal {
-    background-color: hsl(var(--teal-echo));
+  .bg-green-bright {
+    background-color: hsl(var(--spotify-green-bright));
   }
 
-  .bg-gold {
-    background-color: hsl(var(--warm-gold));
+  .bg-white {
+    background-color: hsl(var(--white));
   }
 
-  .border-teal {
-    border-color: hsl(var(--teal-echo));
+  .border-green-bright {
+    border-color: hsl(var(--spotify-green-bright));
   }
 
-  .border-magenta {
-    border-color: hsl(var(--electric-magenta));
+  .border-green {
+    border-color: hsl(var(--spotify-green));
   }
 
-  .text-magenta {
-    color: hsl(var(--electric-magenta));
+  .text-green {
+    color: hsl(var(--spotify-green));
   }
 
-  .text-teal {
-    color: hsl(var(--teal-echo));
+  .text-green-bright {
+    color: hsl(var(--spotify-green-bright));
   }
 
-  .text-gold {
-    color: hsl(var(--warm-gold));
+  .text-white {
+    color: hsl(var(--white));
   }
 
   .typing-dot {

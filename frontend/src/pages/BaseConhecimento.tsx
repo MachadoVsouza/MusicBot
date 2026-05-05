@@ -60,9 +60,9 @@ const typeConfig: Record<
   KnowledgeDocType,
   { label: string; icon: LucideIcon; className: string }
 > = {
-  document: { label: 'Documento', icon: FileText, className: 'text-teal' },
-  api: { label: 'API', icon: Database, className: 'text-gold' },
-  record: { label: 'Registro', icon: ClipboardList, className: 'text-magenta' },
+  document: { label: 'Documento', icon: FileText, className: 'text-[#1ED760]' },
+  api: { label: 'API', icon: Database, className: 'text-white' },
+  record: { label: 'Registro', icon: ClipboardList, className: 'text-[#B3B3B3]' },
 };
 
 const initialFormState: KnowledgeFormState = {
@@ -131,7 +131,7 @@ const BaseConhecimento = () => {
               <h1 className="font-display text-2xl font-bold text-off-white">
                 Base de Conhecimento
               </h1>
-              <span className="rounded-tag bg-gold px-2 py-0.5 text-xs font-mono-label font-semibold text-midnight">
+              <span className="rounded-tag bg-[#1DB954] px-2 py-0.5 text-xs font-mono-label font-semibold text-black">
                 Moderador
               </span>
             </div>
@@ -144,7 +144,7 @@ const BaseConhecimento = () => {
 
           <button
             onClick={openModal}
-            className="flex w-fit items-center gap-2 rounded-xl bg-magenta px-4 py-2.5 text-sm font-body font-semibold text-off-white transition-all duration-200 hover:brightness-110"
+            className="flex w-fit items-center gap-2 rounded-xl bg-[#1DB954] px-4 py-2.5 text-sm font-body font-semibold text-off-white transition-all duration-200 hover:brightness-110"
           >
             <Plus size={16} />
             Cadastrar novo documento
@@ -152,7 +152,7 @@ const BaseConhecimento = () => {
         </div>
 
         <div className="mb-6 flex flex-wrap gap-3">
-          <div className="glass flex min-w-[220px] flex-1 items-center gap-2 rounded-xl px-3">
+          <div className="bg-[#282828] border border-[#3E3E3E] flex min-w-[220px] flex-1 items-center gap-2 rounded-xl px-3">
             <Search size={16} className="text-slate" />
             <input
               value={search}
@@ -165,7 +165,7 @@ const BaseConhecimento = () => {
           <select
             value={filterCategory}
             onChange={(event) => setFilterCategory(event.target.value)}
-            className="glass min-w-[180px] rounded-xl bg-transparent px-4 py-2.5 text-sm font-body text-off-white focus:outline-none"
+            className="bg-[#282828] border border-[#3E3E3E] min-w-[180px] rounded-xl px-4 py-2.5 text-sm font-body text-off-white focus:outline-none"
           >
             <option value="" className="bg-midnight text-off-white">
               Todas categorias
@@ -180,7 +180,7 @@ const BaseConhecimento = () => {
           <select
             value={filterOrigin}
             onChange={(event) => setFilterOrigin(event.target.value)}
-            className="glass min-w-[180px] rounded-xl bg-transparent px-4 py-2.5 text-sm font-body text-off-white focus:outline-none"
+            className="bg-[#282828] border border-[#3E3E3E] min-w-[180px] rounded-xl px-4 py-2.5 text-sm font-body text-off-white focus:outline-none"
           >
             <option value="" className="bg-midnight text-off-white">
               Todas origens
@@ -193,11 +193,11 @@ const BaseConhecimento = () => {
           </select>
         </div>
 
-        <div className="glass overflow-hidden rounded-card">
+        <div className="bg-[#181818] border border-[#282828] overflow-hidden rounded-card">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-[hsla(0,0%,100%,0.08)]">
+                <tr className="border-b border-[#282828]">
                   <th className="p-4 text-left text-xs font-mono-label uppercase tracking-wider text-slate">
                     Tipo
                   </th>
@@ -226,7 +226,7 @@ const BaseConhecimento = () => {
                 {filteredDocs.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="p-8">
-                      <div className="rounded-card border border-dashed border-[hsla(0,0%,100%,0.12)] bg-[hsla(0,0%,100%,0.03)] px-4 py-10 text-center">
+                      <div className="rounded-card border border-dashed border-[#282828] bg-[#0D0D0D] px-4 py-10 text-center">
                         <p className="font-display text-lg font-semibold text-off-white">
                           Nenhum documento encontrado
                         </p>
@@ -250,7 +250,7 @@ const BaseConhecimento = () => {
                     return (
                       <tr
                         key={doc.id}
-                        className="group border-b border-[hsla(0,0%,100%,0.04)] transition-colors hover:bg-[hsla(0,0%,100%,0.04)]"
+                        className="group border-b border-[#1E1E1E] transition-colors hover:bg-[#282828]"
                       >
                         <td className="p-4">
                           <span className={`flex items-center gap-2 text-sm font-body ${config.className}`}>
@@ -293,14 +293,14 @@ const BaseConhecimento = () => {
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
           onClick={closeModal}
         >
-          <div className="absolute inset-0 bg-black/60" />
+          <div className="absolute inset-0 bg-black/75" />
 
           <motion.div
             initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.2 }}
             onClick={(event) => event.stopPropagation()}
-            className="glass-strong relative z-10 w-full max-w-[560px] rounded-modal p-6"
+            className="bg-[#181818] border border-[#282828] relative z-10 w-full max-w-[560px] rounded-modal p-6"
           >
             <div className="mb-6 flex items-center justify-between gap-4">
               <div>
@@ -314,7 +314,7 @@ const BaseConhecimento = () => {
 
               <button
                 onClick={closeModal}
-                className="text-slate transition-colors hover:text-off-white"
+                className="text-gray-light transition-colors hover:text-off-white"
               >
                 <X size={20} />
               </button>
@@ -331,14 +331,14 @@ const BaseConhecimento = () => {
                 value={form.title}
                 onChange={(event) => updateForm('title', event.target.value)}
                 placeholder="Titulo do documento"
-                className="w-full rounded-xl glass px-4 py-3 text-sm font-body text-off-white placeholder:text-slate focus:outline-none"
+                className="w-full rounded-xl bg-[#282828] border border-[#3E3E3E] px-4 py-3 text-sm font-body text-off-white placeholder:text-slate focus:outline-none"
               />
 
               <div className="grid gap-4 md:grid-cols-2">
                 <select
                   value={form.type}
                   onChange={(event) => updateForm('type', event.target.value as KnowledgeDocType)}
-                  className="w-full rounded-xl bg-transparent glass px-4 py-3 text-sm font-body text-off-white focus:outline-none"
+                  className="w-full rounded-xl bg-[#282828] border border-[#3E3E3E] px-4 py-3 text-sm font-body text-off-white focus:outline-none"
                 >
                   <option value="document" className="bg-midnight text-off-white">
                     Documento
@@ -355,7 +355,7 @@ const BaseConhecimento = () => {
                   value={form.version}
                   onChange={(event) => updateForm('version', event.target.value)}
                   placeholder="Versao"
-                  className="w-full rounded-xl glass px-4 py-3 text-sm font-body text-off-white placeholder:text-slate focus:outline-none"
+                  className="w-full rounded-xl bg-[#282828] border border-[#3E3E3E] px-4 py-3 text-sm font-body text-off-white placeholder:text-slate focus:outline-none"
                 />
               </div>
 
@@ -363,7 +363,7 @@ const BaseConhecimento = () => {
                 <select
                   value={form.category}
                   onChange={(event) => updateForm('category', event.target.value)}
-                  className="w-full rounded-xl bg-transparent glass px-4 py-3 text-sm font-body text-off-white focus:outline-none"
+                  className="w-full rounded-xl bg-[#282828] border border-[#3E3E3E] px-4 py-3 text-sm font-body text-off-white focus:outline-none"
                 >
                   <option value="" className="bg-midnight text-off-white">
                     Categoria
@@ -378,7 +378,7 @@ const BaseConhecimento = () => {
                 <select
                   value={form.origin}
                   onChange={(event) => updateForm('origin', event.target.value)}
-                  className="w-full rounded-xl bg-transparent glass px-4 py-3 text-sm font-body text-off-white focus:outline-none"
+                  className="w-full rounded-xl bg-[#282828] border border-[#3E3E3E] px-4 py-3 text-sm font-body text-off-white focus:outline-none"
                 >
                   <option value="" className="bg-midnight text-off-white">
                     Origem
@@ -395,7 +395,7 @@ const BaseConhecimento = () => {
                 value={form.reference}
                 onChange={(event) => updateForm('reference', event.target.value)}
                 placeholder="Arquivo, endpoint ou link de referencia"
-                className="w-full rounded-xl glass px-4 py-3 text-sm font-body text-off-white placeholder:text-slate focus:outline-none"
+                className="w-full rounded-xl bg-[#282828] border border-[#3E3E3E] px-4 py-3 text-sm font-body text-off-white placeholder:text-slate focus:outline-none"
               />
 
               <textarea
@@ -403,20 +403,20 @@ const BaseConhecimento = () => {
                 onChange={(event) => updateForm('content', event.target.value)}
                 rows={5}
                 placeholder="Resumo, contexto ou conteudo base do documento"
-                className="w-full resize-none rounded-xl glass px-4 py-3 text-sm font-body text-off-white placeholder:text-slate focus:outline-none"
+                className="w-full resize-none rounded-xl bg-[#282828] border border-[#3E3E3E] px-4 py-3 text-sm font-body text-off-white placeholder:text-slate focus:outline-none"
               />
 
               <div className="flex gap-3">
                 <button
                   type="button"
                   onClick={closeModal}
-                  className="flex-1 rounded-xl glass py-3 text-sm font-body text-slate transition-colors hover:text-off-white"
+                  className="flex-1 rounded-xl bg-[#282828] border border-[#3E3E3E] py-3 text-sm font-body text-gray-light transition-colors hover:text-off-white"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 rounded-xl bg-magenta py-3 text-sm font-body font-semibold text-off-white transition-all hover:brightness-110"
+                  className="flex-1 rounded-xl bg-[#1DB954] py-3 text-sm font-body font-semibold text-off-white transition-all hover:brightness-110"
                 >
                   Salvar documento
                 </button>

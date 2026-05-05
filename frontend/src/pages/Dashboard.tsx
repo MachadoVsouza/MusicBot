@@ -57,9 +57,9 @@ const feedbackTypeConfig: Record<
   FeedbackType,
   { label: string; icon: LucideIcon; className: string }
 > = {
-  bug: { label: 'Bug', icon: Bug, className: 'text-magenta' },
-  suggestion: { label: 'Sugestão', icon: Lightbulb, className: 'text-gold' },
-  general: { label: 'Geral', icon: MessageCircle, className: 'text-teal' },
+  bug: { label: 'Bug', icon: Bug, className: 'text-[#E91429]' },
+  suggestion: { label: 'Sugestão', icon: Lightbulb, className: 'text-white' },
+  general: { label: 'Geral', icon: MessageCircle, className: 'text-[#1ED760]' },
 };
 
 const Dashboard = () => {
@@ -89,7 +89,7 @@ const Dashboard = () => {
               <h1 className="font-display text-2xl font-bold text-off-white">
                 Dashboard do MusicBot
               </h1>
-              <span className="rounded-tag bg-gold px-2 py-0.5 text-xs font-mono-label font-semibold text-midnight">
+              <span className="rounded-tag bg-[#1DB954] px-2 py-0.5 text-xs font-mono-label font-semibold text-black">
                 Moderador
               </span>
             </div>
@@ -110,8 +110,8 @@ const Dashboard = () => {
                 onClick={() => setPeriod(option.key)}
                 className={`rounded-tag px-3 py-1.5 text-sm font-body transition-all duration-200 ${
                   period === option.key
-                    ? 'bg-magenta text-off-white'
-                    : 'glass text-slate hover:text-off-white'
+                    ? 'bg-[#1DB954] text-off-white'
+                    : 'bg-[#282828] text-slate hover:text-off-white'
                 }`}
               >
                 {option.label}
@@ -147,7 +147,7 @@ const Dashboard = () => {
           />
         </div>
 
-        <div className="glass mb-8 rounded-card p-6">
+        <div className="bg-[#181818] border border-[#282828] mb-8 rounded-card p-6">
           <div className="mb-4 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
             <h2 className="font-display text-lg font-semibold text-off-white">Uso por Período</h2>
             <span className="text-xs font-body text-slate">
@@ -175,7 +175,7 @@ const Dashboard = () => {
                 <Line
                   type="monotone"
                   dataKey="perguntas"
-                  stroke="hsl(342,74%,57%)"
+                  stroke="#1DB954"
                   strokeWidth={2}
                   dot={false}
                   isAnimationActive={false}
@@ -185,7 +185,7 @@ const Dashboard = () => {
             </ResponsiveContainer>
 
             <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-              <div className="rounded-card border border-[hsla(0,0%,100%,0.1)] bg-[hsla(220,30%,10%,0.82)] px-6 py-5 text-center">
+              <div className="rounded-card border border-[hsla(0,0%,100%,0.1)] bg-[#181818CC] px-6 py-5 text-center">
                 <p className="font-display text-lg font-semibold text-off-white">
                   Gráfico aguardando integração
                 </p>
@@ -198,7 +198,7 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <div className="glass mb-8 rounded-card p-6">
+        <div className="bg-[#181818] border border-[#282828] mb-8 rounded-card p-6">
           <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="font-display text-lg font-semibold text-off-white">
               Feedbacks dos Usuários
@@ -215,8 +215,8 @@ const Dashboard = () => {
                   onClick={() => setFeedbackFilter(option.key)}
                   className={`rounded-tag px-3 py-1 text-xs font-body transition-all duration-200 ${
                     feedbackFilter === option.key
-                      ? 'bg-magenta text-off-white'
-                      : 'glass text-slate hover:text-off-white'
+                      ? 'bg-[#1DB954] text-off-white'
+                      : 'bg-[#282828] text-gray-light hover:text-off-white'
                   }`}
                 >
                   {option.label}
@@ -252,7 +252,7 @@ const Dashboard = () => {
                     return (
                       <tr
                         key={feedback.id}
-                        className="border-b border-[hsla(0,0%,100%,0.04)] transition-colors hover:bg-[hsla(0,0%,100%,0.04)]"
+                        className="border-b border-[#1E1E1E] transition-colors hover:bg-[#282828]"
                       >
                         <td className="p-3 text-sm font-mono-label text-teal">{feedback.id}</td>
                         <td className="p-3">
@@ -278,7 +278,7 @@ const Dashboard = () => {
           </p>
         </div>
 
-        <div className="glass rounded-card p-6">
+        <div className="bg-[#181818] border border-[#282828] rounded-card p-6">
           <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="font-display text-lg font-semibold text-off-white">
               Avaliações Recentes
@@ -294,8 +294,8 @@ const Dashboard = () => {
                   onClick={() => setReviewFilter(option.key)}
                   className={`rounded-tag px-3 py-1 text-xs font-body transition-all duration-200 ${
                     reviewFilter === option.key
-                      ? 'bg-teal text-off-white'
-                      : 'glass text-slate hover:text-off-white'
+                      ? 'bg-[#1ED760] text-off-white'
+                      : 'bg-[#282828] text-gray-light hover:text-off-white'
                   }`}
                 >
                   {option.label}
@@ -307,7 +307,7 @@ const Dashboard = () => {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-[hsla(0,0%,100%,0.08)]">
+                <tr className="border-b border-[#282828]">
                   <th className="p-3 text-left text-xs font-mono-label uppercase tracking-wider text-slate">ID</th>
                   <th className="p-3 text-left text-xs font-mono-label uppercase tracking-wider text-slate">Usuário</th>
                   <th className="p-3 text-left text-xs font-mono-label uppercase tracking-wider text-slate">Avaliação</th>
@@ -325,7 +325,7 @@ const Dashboard = () => {
                   filteredReviews.map((review) => (
                     <tr
                       key={review.id}
-                      className="border-b border-[hsla(0,0%,100%,0.04)] transition-colors hover:bg-[hsla(0,0%,100%,0.04)]"
+                      className="border-b border-[#1E1E1E] transition-colors hover:bg-[#282828]"
                     >
                       <td className="p-3 text-sm font-mono-label text-teal">{review.id}</td>
                       <td className="p-3 text-sm font-body text-off-white">{review.user}</td>
@@ -346,7 +346,7 @@ const Dashboard = () => {
         </div>
 
         <div className="mt-6 flex justify-end">
-          <button className="flex items-center gap-2 text-sm font-body text-slate transition-colors duration-200 hover:text-gold">
+          <button className="flex items-center gap-2 text-sm font-body text-slate transition-colors duration-200 hover:text-white">
             <FileDown size={16} />
             Exportar relatório
           </button>
@@ -367,7 +367,7 @@ const MetricCard = ({
   label: string;
   helper: string;
 }) => (
-  <div className="glass rounded-card p-5 transition-all duration-200 hover:bg-[hsla(0,0%,100%,0.06)]">
+  <div className="bg-[#181818] border border-[#282828] rounded-card p-5 transition-all duration-200 hover:bg-[#282828]">
     <Icon size={20} className="mb-3 text-slate" />
     <div className="flex items-end justify-between gap-3">
       <div>
@@ -391,7 +391,7 @@ const EmptyTableRow = ({
 }) => (
   <tr>
     <td colSpan={colSpan} className="p-8">
-      <div className="rounded-card border border-dashed border-[hsla(0,0%,100%,0.12)] bg-[hsla(0,0%,100%,0.03)] px-4 py-8 text-center">
+      <div className="rounded-card border border-dashed border-[#282828] bg-[#0D0D0D] px-4 py-8 text-center">
         <p className="font-display text-lg font-semibold text-off-white">{title}</p>
         <p className="mx-auto mt-2 max-w-xl text-sm font-body leading-6 text-slate">
           {description}
