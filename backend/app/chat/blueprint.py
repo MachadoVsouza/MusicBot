@@ -41,7 +41,7 @@ def enviar_mensagem(token: str, usuario_id: str, chat_id: int):
     if not mensagem:
         return error("Campo 'mensagem' obrigatório", 400, "missing_message")
 
-    resultado  = _svc().enviar_mensagem(usuario_id, chat_id, mensagem)
+    resultado  = _svc().enviar_mensagem(usuario_id, chat_id, mensagem, token=token)
 
     if resultado is None:
         return not_found("Chat não encontrado")
