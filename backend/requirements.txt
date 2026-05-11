@@ -6,11 +6,12 @@ requests>=2.32
 sqlalchemy>=2.0
 psycopg2-binary>=2.9
 pgvector>=0.3
-langchain>=0.3
-langchain-core>=0.3
-langchain-ollama>=0.2
+langchain==0.3.25
+langchain-core==0.3.59
+langchain-ollama==0.2.3
 pypdf>=4.0
 wikipedia>=1.4.0
 faker
 dotenv 
 sentence-transformers>=5.0.0
+
