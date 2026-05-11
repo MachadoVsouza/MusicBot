@@ -174,7 +174,7 @@ export default function Profile() {
 
 const styles: Record<string, React.CSSProperties> = {
   page: {
-    background: "#080808",
+    background: "#121212",
     minHeight: "100vh",
     fontFamily: "'DM Sans', sans-serif",
     color: "#f0ede8",
@@ -184,7 +184,7 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: "center",
     justifyContent: "space-between",
     padding: "20px 40px",
-    borderBottom: "1px solid #1e1e1e",
+    borderBottom: "1px solid #282828",
   },
   brand: {
     fontFamily: "'Bebas Neue', sans-serif",
@@ -194,8 +194,8 @@ const styles: Record<string, React.CSSProperties> = {
   },
   logoutBtn: {
     background: "transparent",
-    border: "1px solid #2a2a2a",
-    color: "#666",
+    border: "1px solid #282828",
+    color: "#B3B3B3",
     fontFamily: "'DM Sans', sans-serif",
     fontSize: 13,
     padding: "8px 20px",
@@ -212,14 +212,14 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: "start",
   },
   profileCard: {
-    background: "#111",
-    border: "1px solid #1e1e1e",
+    background: "#181818",
+    border: "1px solid #282828",
     borderRadius: 16,
     overflow: "hidden",
   },
   banner: {
     height: 80,
-    background: "linear-gradient(135deg,#0f3d20 0%,#1a1a1a 60%,#0d2b17 100%)",
+    background: "linear-gradient(135deg, #0A3D1C 0%, #121212 60%, #0A3D1C 100%)",
   },
   avatarRow: {
     display: "flex",
@@ -242,7 +242,7 @@ const styles: Record<string, React.CSSProperties> = {
     height: 72,
     borderRadius: "50%",
     border: "3px solid #080808",
-    background: "#1a1a1a",
+    background: "#282828",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -268,7 +268,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   userEmail: {
     fontSize: 12,
-    color: "#555",
+    color: "#B3B3B3",
     margin: 0,
     marginBottom: 20,
   },
@@ -278,8 +278,8 @@ const styles: Record<string, React.CSSProperties> = {
     gap: 10,
   },
   statBox: {
-    background: "#080808",
-    border: "1px solid #1e1e1e",
+    background: "#121212",
+    border: "1px solid #282828",
     borderRadius: 10,
     padding: "12px 14px",
     display: "flex",
@@ -294,12 +294,12 @@ const styles: Record<string, React.CSSProperties> = {
   },
   statLabel: {
     fontSize: 10,
-    color: "#444",
+    color: "#B3B3B3",
     letterSpacing: "0.08em",
   },
   tracksSection: {
-    background: "#111",
-    border: "1px solid #1e1e1e",
+    background: "#181818",
+    border: "1px solid #282828",
     borderRadius: 16,
     overflow: "hidden",
   },
@@ -308,7 +308,7 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: "center",
     gap: 12,
     padding: "20px 24px 16px",
-    borderBottom: "1px solid #1a1a1a",
+    borderBottom: "1px solid #282828",
   },
   sectionTitle: {
     fontFamily: "'Bebas Neue', sans-serif",
@@ -338,13 +338,13 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: "center",
     gap: 16,
     padding: "12px 24px",
-    borderBottom: "1px solid #141414",
+    borderBottom: "1px solid #1E1E1E",
     transition: "background 0.15s",
   },
   trackIndex: {
     fontFamily: "'Bebas Neue', sans-serif",
     fontSize: 16,
-    color: "#333",
+    color: "#535353",
     minWidth: 24,
     textAlign: "center" as const,
   },
@@ -357,7 +357,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   trackName: {
     fontSize: 14,
-    color: "#f0ede8",
+    color: "#FFFFFF",
     fontWeight: 500,
     whiteSpace: "nowrap" as const,
     overflow: "hidden",
@@ -365,24 +365,24 @@ const styles: Record<string, React.CSSProperties> = {
   },
   trackArtist: {
     fontSize: 12,
-    color: "#555",
+    color: "#B3B3B3",
     whiteSpace: "nowrap" as const,
     overflow: "hidden",
     textOverflow: "ellipsis",
   },
   trackTime: {
     fontSize: 11,
-    color: "#444",
+    color: "#B3B3B3",
     whiteSpace: "nowrap" as const,
   },
   emptyMsg: {
     padding: "32px 24px",
-    color: "#444",
+    color: "#535353",
     fontSize: 13,
     textAlign: "center" as const,
   },
   loadingWrap: {
-    background: "#080808",
+    background: "#121212",
     minHeight: "100vh",
     display: "flex",
     flexDirection: "column" as const,
@@ -404,7 +404,7 @@ const styles: Record<string, React.CSSProperties> = {
     animation: "wave 1.4s ease-in-out infinite",
   },
   loadingText: {
-    color: "#444",
+    color: "#B3B3B3",
     fontSize: 13,
     letterSpacing: "0.06em",
     fontFamily: "'DM Sans', sans-serif",

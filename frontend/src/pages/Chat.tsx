@@ -45,6 +45,12 @@ interface Conversation {
   messages: Message[];
 }
 
+interface ChatApiResponse {
+  id: string | number;
+  titulo: string;
+  updated_at: string;
+}
+
 const DEFAULT_BOT_REPLY = 'No momento não foi possível gerar uma resposta. Tente novamente mais tarde.';
 
 const fmt = (iso?: string) =>
@@ -102,7 +108,7 @@ const Chat = () => {
         const res = await fetch(`${API}/chat/`, { credentials: 'include' });
         if (!res.ok) return;
         const data = await res.json();
-        const loaded: Conversation[] = (data.chats ?? []).map((c: any) => ({
+        const loaded: Conversation[] = (data.chats ?? []).map((c: ChatApiResponse) => ({
           id: String(c.id),
           title: c.titulo,
           updatedAt: new Date(c.updated_at).toLocaleDateString('pt-BR'),
@@ -279,8 +285,8 @@ const Chat = () => {
             type="button"
             onClick={() => handleSelectConversation(conversation.id)}
             className={`w-full text-left rounded-xl px-3 py-3 transition-colors ${conversation.id === currentConversationId
-              ? 'bg-white/15 text-off-white'
-              : 'bg-white/5 text-slate hover:text-off-white hover:bg-white/10'
+              ? 'bg-[#282828] text-white border-l-2 border-[#1DB954]'
+              : 'bg-transparent text-[#B3B3B3] hover:text-white hover:bg-[#282828]'
               }`}
           >
             <p className="text-sm font-medium truncate">{conversation.title}</p>
@@ -300,7 +306,7 @@ const Chat = () => {
 
         <div className="flex-1 overflow-y-auto min-h-0 space-y-4 sm:space-y-5 pb-5 sm:pb-6 pr-1">
           {messages.length === 0 ? (
-            <div className="glass rounded-2xl p-6 sm:p-8 text-center max-w-2xl mx-auto">
+            <div className="bg-[#181818] rounded-2xl p-6 sm:p-8 text-center max-w-2xl mx-auto">
               <h2 className="font-display text-xl text-off-white mb-2">Bem-vindo, {displayName}</h2>
               <p className="text-slate text-sm sm:text-base">
                 {currentConversationId ? 'Nenhuma mensagem ainda.' : 'Envie uma mensagem para começar.'}
@@ -314,8 +320,8 @@ const Chat = () => {
               >
                 <div
                   className={`max-w-[90%] sm:max-w-[78%] rounded-2xl px-4 sm:px-5 py-3 sm:py-4 ${message.role === 'user'
-                    ? 'bg-teal text-off-white rounded-br-md'
-                    : 'glass text-off-white rounded-bl-md'
+                    ? 'bg-[#1DB954] text-off-white rounded-br-md'
+                    : 'bg-[#282828] text-off-white rounded-bl-md'
                     }`}
                 >
                   <p className="text-sm sm:text-base whitespace-pre-wrap leading-relaxed">{message.content}</p>
@@ -325,7 +331,7 @@ const Chat = () => {
                       <button
                         type="button"
                         onClick={() => setSelectedSource(message.sources?.[0] ?? null)}
-                        className="text-teal hover:underline"
+                        className="text-[#1DB954] hover:underline"
                       >
                         Fonte
                       </button>
@@ -337,16 +343,16 @@ const Chat = () => {
           )}
 
           {isTyping && (
-            <div className="flex items-center gap-1 glass rounded-2xl rounded-bl-md px-4 py-3 w-fit">
-              <div className="w-2 h-2 rounded-full bg-teal typing-dot" />
-              <div className="w-2 h-2 rounded-full bg-teal typing-dot" />
-              <div className="w-2 h-2 rounded-full bg-teal typing-dot" />
+            <div className="flex items-center gap-1 bg-[#282828] rounded-2xl rounded-bl-md px-4 py-3 w-fit">
+              <div className="w-2 h-2 rounded-full bg-[#1DB954] typing-dot" />
+              <div className="w-2 h-2 rounded-full bg-[#1DB954] typing-dot" />
+              <div className="w-2 h-2 rounded-full bg-[#1DB954] typing-dot" />
             </div>
           )}
           <div ref={messagesEndRef} />
         </div>
 
-        <form onSubmit={handleSubmit} className="glass rounded-2xl px-3 py-3 sm:px-4 sm:py-4">
+        <form onSubmit={handleSubmit} className="bg-[#181818] border border-[#282828] rounded-2xl px-3 py-3 sm:px-4 sm:py-4">
           <div className="flex items-end gap-3 sm:gap-4">
             <textarea
               ref={textareaRef}
@@ -366,7 +372,7 @@ const Chat = () => {
             <button
               type="submit"
               disabled={!inputValue.trim() || isTyping}
-              className="shrink-0 h-11 bg-magenta text-off-white rounded-xl px-5 text-sm font-semibold hover:brightness-110 transition-all disabled:opacity-50"
+              className="shrink-0 h-11 bg-green text-off-white rounded-xl px-5 text-sm font-semibold hover:brightness-110 transition-all disabled:opacity-50"
             >
               Enviar
             </button>
@@ -378,14 +384,14 @@ const Chat = () => {
             <button
               type="button"
               onClick={() => setConversationRating(conversationRating === 'positive' ? null : 'positive')}
-              className={`p-2 rounded-lg transition-all duration-200 ${conversationRating === 'positive' ? 'bg-[hsla(170,71%,41%,0.2)] text-teal' : 'text-slate hover:text-off-white'}`}
+              className={`p-2 rounded-lg transition-all duration-200 ${conversationRating === 'positive' ? 'bg-[#1ED76020] text-[#1ED760]' : 'text-slate hover:text-off-white'}`}
             >
               <ThumbsUp size={18} />
             </button>
             <button
               type="button"
               onClick={() => setConversationRating(conversationRating === 'negative' ? null : 'negative')}
-              className={`p-2 rounded-lg transition-all duration-200 ${conversationRating === 'negative' ? 'bg-[hsla(342,74%,57%,0.2)] text-magenta' : 'text-slate hover:text-off-white'}`}
+              className={`p-2 rounded-lg transition-all duration-200 ${conversationRating === 'negative' ? 'bg-[#E9142920] text-[#E91429]' : 'text-slate hover:text-off-white'}`}
             >
               <ThumbsDown size={18} />
             </button>
@@ -397,7 +403,7 @@ const Chat = () => {
                 <Download size={18} />
               </button>
               {showExportMenu && (
-                <div className="absolute left-0 bottom-11 glass rounded-xl p-2 w-48 z-20">
+                <div className="absolute left-0 bottom-11 bg-[#282828] border border-[#3E3E3E] rounded-xl p-2 w-48 z-20">
                   <p className="text-xs text-slate px-2 py-1">Exportação (em breve)</p>
                   {['PDF', 'TXT', 'JSON'].map((format) => (
                     <button key={format} type="button" disabled className="w-full text-left px-2 py-2 rounded-lg text-off-white/70 text-sm cursor-not-allowed">
@@ -423,16 +429,16 @@ const Chat = () => {
 
           <div className="relative justify-self-end">
             <button type="button" onClick={() => setShowSettings((prev) => !prev)} className="relative">
-              <img src={userAvatar} alt={userAlt} className="w-9 h-9 rounded-full border-2 border-teal hover:scale-105 transition-transform duration-200" />
+              <img src={userAvatar} alt={userAlt} className="w-9 h-9 rounded-full border-2 border-green-bright hover:scale-105 transition-transform duration-200" />
             </button>
             {showSettings && (
-              <div className="absolute right-0 bottom-12 glass rounded-xl p-2 w-64 z-20">
-                <button type="button" onClick={openDashboard} className="w-full flex items-center justify-between text-left px-3 py-2 rounded-lg hover:bg-white/10 text-sm text-off-white">Dashboard <ExternalLink size={15} className="text-slate" /></button>
-                <button type="button" onClick={openKnowledgeBase} className="w-full flex items-center justify-between text-left px-3 py-2 rounded-lg hover:bg-white/10 text-sm text-off-white">Base de conhecimento <ExternalLink size={15} className="text-slate" /></button>
-                <button type="button" onClick={openProfile} className="w-full flex items-center justify-between text-left px-3 py-2 rounded-lg hover:bg-white/10 text-sm text-off-white">Perfil <UserCircle size={15} className="text-slate" /></button>
-                <button type="button" onClick={() => { setShowSettings(false); setShowPreferences(true); }} className="w-full flex items-center justify-between text-left px-3 py-2 rounded-lg hover:bg-white/10 text-sm text-off-white">Preferências <Settings size={15} className="text-slate" /></button>
-                <button type="button" onClick={() => { setShowSettings(false); setShowFeedback(true); }} className="w-full flex items-center justify-between text-left px-3 py-2 rounded-lg hover:bg-white/10 text-sm text-off-white">Feedback <MessageSquare size={15} className="text-slate" /></button>
-                <button type="button" onClick={handleLogout} className="w-full text-left px-3 py-2 rounded-lg hover:bg-white/10 text-sm text-magenta">Sair</button>
+              <div className="absolute right-0 bottom-12 bg-[#282828] border border-[#3E3E3E] rounded-xl p-2 w-64 z-20">
+                <button type="button" onClick={openDashboard} className="w-full flex items-center justify-between text-left px-3 py-2 rounded-lg hover:bg-[#3E3E3E] text-sm text-off-white">Dashboard <ExternalLink size={15} className="text-slate" /></button>
+                <button type="button" onClick={openKnowledgeBase} className="w-full flex items-center justify-between text-left px-3 py-2 rounded-lg hover:bg-[#3E3E3E] text-sm text-off-white">Base de conhecimento <ExternalLink size={15} className="text-slate" /></button>
+                <button type="button" onClick={openProfile} className="w-full flex items-center justify-between text-left px-3 py-2 rounded-lg hover:bg-[#3E3E3E] text-sm text-off-white">Perfil <UserCircle size={15} className="text-slate" /></button>
+                <button type="button" onClick={() => { setShowSettings(false); setShowPreferences(true); }} className="w-full flex items-center justify-between text-left px-3 py-2 rounded-lg hover:bg-[#3E3E3E] text-sm text-off-white">Preferências <Settings size={15} className="text-slate" /></button>
+                <button type="button" onClick={() => { setShowSettings(false); setShowFeedback(true); }} className="w-full flex items-center justify-between text-left px-3 py-2 rounded-lg hover:bg-[#3E3E3E] text-sm text-off-white">Feedback <MessageSquare size={15} className="text-slate" /></button>
+                <button type="button" onClick={handleLogout} className="w-full text-left px-3 py-2 rounded-lg hover:bg-[#3E3E3E] text-sm text-[#E91429]">Sair</button>
               </div>
             )}
           </div>
@@ -440,14 +446,14 @@ const Chat = () => {
       </div>
 
       {showHistory && (
-        <div className="fixed inset-0 bg-black/50 z-30 flex items-end sm:items-center justify-center p-4">
-          <div className="glass rounded-2xl w-full max-w-lg p-4 sm:p-5">
+        <div className="fixed inset-0 bg-black/70 z-30 flex items-end sm:items-center justify-center p-4">
+          <div className="bg-[#181818] border border-[#282828] rounded-2xl w-full max-w-lg p-4 sm:p-5">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-off-white font-display text-lg">Histórico de conversas</h3>
               <button type="button" onClick={() => setShowHistory(false)} className="text-slate hover:text-off-white"><X size={18} /></button>
             </div>
             {historyContent}
-            <button type="button" onClick={handleNewConversation} className="mt-4 w-full bg-magenta text-off-white rounded-xl py-2.5 text-sm font-semibold hover:brightness-110">
+            <button type="button" onClick={handleNewConversation} className="mt-4 w-full bg-green text-off-white rounded-xl py-2.5 text-sm font-semibold hover:brightness-110">
               Nova conversa
             </button>
           </div>
@@ -455,14 +461,14 @@ const Chat = () => {
       )}
 
       {showFeedback && (
-        <div className="fixed inset-0 bg-black/50 z-30 flex items-end sm:items-center justify-center p-4">
-          <div className="glass rounded-2xl w-full max-w-lg p-4 sm:p-5">
+        <div className="fixed inset-0 bg-black/70 z-30 flex items-end sm:items-center justify-center p-4">
+          <div className="bg-[#181818] border border-[#282828] rounded-2xl w-full max-w-lg p-4 sm:p-5">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-off-white font-display text-lg">Enviar feedback</h3>
               <button type="button" onClick={() => setShowFeedback(false)} className="text-slate hover:text-off-white"><X size={18} /></button>
             </div>
             <textarea value={feedbackText} onChange={(e) => setFeedbackText(e.target.value)} placeholder="Descreva seu feedback..." className="w-full h-28 rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-sm text-off-white placeholder:text-slate focus:outline-none" />
-            <button type="button" onClick={() => { setFeedbackText(''); setShowFeedback(false); }} className="mt-4 w-full bg-teal text-off-white rounded-xl py-2.5 text-sm font-semibold hover:brightness-110">
+            <button type="button" onClick={() => { setFeedbackText(''); setShowFeedback(false); }} className="mt-4 w-full bg-[#1DB954] text-off-white rounded-xl py-2.5 text-sm font-semibold hover:brightness-110">
               Enviar
             </button>
           </div>
@@ -470,8 +476,8 @@ const Chat = () => {
       )}
 
       {showPreferences && (
-        <div className="fixed inset-0 bg-black/50 z-30 flex items-end sm:items-center justify-center p-4">
-          <div className="glass rounded-2xl w-full max-w-md p-4 sm:p-5">
+        <div className="fixed inset-0 bg-black/70 z-30 flex items-end sm:items-center justify-center p-4">
+          <div className="bg-[#181818] border border-[#282828] rounded-2xl w-full max-w-md p-4 sm:p-5">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-off-white font-display text-lg">Preferências</h3>
               <button type="button" onClick={() => setShowPreferences(false)} className="text-slate hover:text-off-white"><X size={18} /></button>
@@ -491,8 +497,8 @@ const Chat = () => {
       )}
 
       {selectedSource && (
-        <div className="fixed inset-0 bg-black/50 z-30 flex items-end sm:items-center justify-center p-4">
-          <div className="glass rounded-2xl w-full max-w-xl p-4 sm:p-5">
+        <div className="fixed inset-0 bg-black/70 z-30 flex items-end sm:items-center justify-center p-4">
+          <div className="bg-[#181818] border border-[#282828] rounded-2xl w-full max-w-xl p-4 sm:p-5">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-off-white font-display text-lg">Fonte</h3>
               <button type="button" onClick={() => setSelectedSource(null)} className="text-slate hover:text-off-white"><X size={18} /></button>

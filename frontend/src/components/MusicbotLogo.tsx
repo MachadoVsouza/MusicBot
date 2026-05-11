@@ -6,7 +6,7 @@ const MusicbotLogo = ({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) => {
 
   return (
     <div className="flex items-center gap-2 justify-center">
-      <div className="bg-magenta p-2 rounded-xl">
+      <div className="bg-green p-2 rounded-lg">
         <Music size={iconSizes[size]} className="text-off-white" />
       </div>
       <span className={`font-display font-bold text-off-white ${sizes[size]}`}>

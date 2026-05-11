@@ -40,7 +40,7 @@ const Cadastro = () => {
             <button
               onClick={handleSpotifyAuth}
               disabled={loading}
-              className="w-full py-3 px-4 rounded-xl bg-magenta text-off-white font-body font-semibold text-base hover:brightness-110 transition-all duration-200 hover:scale-[1.02] flex items-center justify-center gap-3 disabled:opacity-70"
+              className="w-full py-3 px-4 rounded-xl bg-green text-off-white font-body font-semibold text-base hover:brightness-110 transition-all duration-200 hover:scale-[1.02] flex items-center justify-center gap-3 disabled:opacity-70"
             >
               {loading ? (
                 <Loader2 size={20} className="animate-spin" />
@@ -65,10 +65,10 @@ const Cadastro = () => {
           </>
         ) : (
           <>
-            <div className="w-full glass rounded-xl p-4">
+            <div className="w-full bg-[#282828] rounded-xl p-4 border border-[#3E3E3E]">
               <div className="flex items-center gap-3 mb-3">
                 {user?.avatar ? (
-                  <img src={user.avatar} alt="Avatar" className="w-12 h-12 rounded-full object-cover border border-teal" />
+                  <img src={user.avatar} alt="Avatar" className="w-12 h-12 rounded-full object-cover border border-green-bright" />
                 ) : (
                   <div className="w-12 h-12 rounded-full bg-[hsla(0,0%,100%,0.1)]" />
                 )}
@@ -79,21 +79,21 @@ const Cadastro = () => {
               </div>
               {user?.plan && (
                 <p className="text-slate text-xs font-mono-label">
-                  Plano Spotify: <span className="text-teal">{user.plan}</span>
+                  Plano Spotify: <span className="text-green-bright">{user.plan}</span>
                 </p>
               )}
             </div>
 
             <button
               onClick={() => navigate('/under-construction', { replace: true })}
-              className="w-full py-3 px-4 rounded-xl bg-magenta text-off-white font-body font-semibold text-base hover:brightness-110 transition-all duration-200 hover:scale-[1.02]"
+              className="w-full py-3 px-4 rounded-xl bg-green text-off-white font-body font-semibold text-base hover:brightness-110 transition-all duration-200 hover:scale-[1.02]"
             >
               Entrar
             </button>
 
             <button
               onClick={handleUseAnotherAccount}
-              className="text-slate text-sm hover:text-teal transition-colors duration-200"
+              className="text-slate text-sm hover:text-green-bright transition-colors duration-200"
             >
               Não é você? Usar outra conta
             </button>
@@ -102,7 +102,7 @@ const Cadastro = () => {
 
         <button
           onClick={() => navigate('/login')}
-          className="text-slate text-sm hover:text-teal transition-colors duration-200"
+          className="text-slate text-sm hover:text-green-bright transition-colors duration-200"
         >
           ← Voltar
         </button>
