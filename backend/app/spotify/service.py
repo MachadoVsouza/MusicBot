@@ -29,11 +29,12 @@ class SpotifyService:
             {
                 "id":    item["id"],
                 "name":  item["name"],
-                "total": item["tracks"]["total"],
+                "total": item.get("tracks", {}).get("total", 0) if item.get("tracks") else 0,
             }
             for item in results["items"]
+            if item  # algumas playlists podem vir como None
         ]
-
+        
     # ── Histórico ─────────────────────────────────────────────────────────────
 
     def get_recently_played(self) -> list[dict]:

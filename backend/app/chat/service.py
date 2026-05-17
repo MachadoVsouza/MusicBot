@@ -17,17 +17,14 @@ Siga as seguintes diretrizes:
 CONTEXTO:
 {contexto}"""
 
-# Palavras que indicam intenção de busca/reprodução no Spotify
 INTENT_PATTERNS = re.compile(
-    r"\b(toca|tocar|busca|buscar|procura|procurar|encontra|encontrar|ouvir|ouça|play|pesquisa)\b",
+    r"\b(toca|tocar|busca|buscar|procura|procurar|encontra|encontrar|ouvir|ouça|play|pesquisa|minhas|meus|favoritos|recentes|curtidas|curti|playlists|cria|adiciona|artista)\b",
     re.IGNORECASE
-)
+)   
 
 
 def _detectar_intencao_spotify(mensagem: str) -> bool:
     return bool(INTENT_PATTERNS.search(mensagem))
-
-
 
 
 class ChatService:
@@ -54,28 +51,19 @@ class ChatService:
             for c in chats
         ]
 
-    #temporary function to debug
-    def enviar_mensagem_debug(self, spotify_id: str, chat_id: int, mensagem: str, token: str = None) -> dict | None:
-        import logging
-        logging.getLogger(__name__).warning(f"TOKEN: {bool(token)} | INTENT: {_detectar_intencao_spotify(mensagem)}")
-
-
-
-
     def enviar_mensagem(self, spotify_id: str, chat_id: int, mensagem: str, token: str = None) -> dict | None:
         chat = self.chat_repo.get_chat(chat_id, spotify_id)
         if not chat:
             return None
 
-            
-
         historico = self.chat_repo.get_historico(chat_id)
         pergunta  = self.chat_repo.salvar_pergunta(chat_id, mensagem)
         historico.append({"role": "user", "content": mensagem})
 
-        midia     = None
-        usou_rag  = False
+        midia      = None
+        usou_rag   = False
         usou_agent = False
+        fragmentos = []
 
         # 1. Verifica se é intenção de busca no Spotify
         if token and _detectar_intencao_spotify(mensagem):
@@ -100,13 +88,14 @@ class ChatService:
                 system_prompt = system_prompt,
             )
 
-            if usou_rag:
-                self.rag_svc.salvar_fontes(pergunta.id, [f["fragmento_id"] for f in fragmentos])
-
         if not conteudo_resposta:
             conteudo_resposta = "Desculpe, não consegui processar sua mensagem. Tente novamente."
 
         resposta = self.chat_repo.salvar_resposta(pergunta.id, conteudo_resposta, usou_rag)
+
+        # Salva fontes RAG depois de ter o ID da resposta
+        if usou_rag and fragmentos and resposta:
+            self.rag_svc.salvar_fontes(resposta.id, [f["fragmento_id"] for f in fragmentos])
 
         return {
             "chat_id":     chat_id,
