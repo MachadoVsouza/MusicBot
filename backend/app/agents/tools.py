@@ -6,6 +6,8 @@ from app.spotify.repository import SpotifyRepository
 def make_spotify_tools(token: str):
     svc = SpotifyService(SpotifyRepository(token))
 
+    
+
     @tool
     def buscar_musica(query: str) -> dict:
         """
