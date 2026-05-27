@@ -238,27 +238,54 @@ const Chat = () => {
     if (!isTyping) handleSendMessage();
   };
 
-  const handlePreviousConversation = () => {
+  const handlePreviousConversation = async () => {
     if (!canNavigateConversations) return;
     const idx = conversations.findIndex((c) => c.id === currentConversationId);
     const next = idx <= 0 ? conversations.length - 1 : idx - 1;
-    setCurrentConversationId(conversations[next].id);
-    setMessages(conversations[next].messages);
+    const nextChatId = conversations[next].id;
+    setCurrentConversationId(nextChatId);
+    
+    try {
+      const res = await fetch(`${API}/chat/${nextChatId}/messages`, { credentials: 'include' });
+      if (!res.ok) return;
+      const data = await res.json();
+      setMessages(data.messages);
+    } catch {
+      setMessages([]);
+    }
   };
 
-  const handleNextConversation = () => {
+  const handleNextConversation = async () => {
     if (!canNavigateConversations) return;
     const idx = conversations.findIndex((c) => c.id === currentConversationId);
     const next = idx >= conversations.length - 1 ? 0 : idx + 1;
-    setCurrentConversationId(conversations[next].id);
-    setMessages(conversations[next].messages);
+    const nextChatId = conversations[next].id;
+    setCurrentConversationId(nextChatId);
+    
+    try {
+      const res = await fetch(`${API}/chat/${nextChatId}/messages`, { credentials: 'include' });
+      if (!res.ok) return;
+      const data = await res.json();
+      setMessages(data.messages);
+    } catch {
+      setMessages([]);
+    }
   };
 
-  const handleSelectConversation = (id: string) => {
+  const handleSelectConversation = async (id: string) => {
     const selected = conversations.find((c) => c.id === id);
     if (!selected) return;
     setCurrentConversationId(selected.id);
-    setMessages(selected.messages);
+    
+    try {
+      const res = await fetch(`${API}/chat/${id}/messages`, { credentials: 'include' });
+      if (!res.ok) return;
+      const data = await res.json();
+      setMessages(data.messages);
+    } catch {
+      setMessages([]);
+    }
+    
     setShowHistory(false);
   };
 

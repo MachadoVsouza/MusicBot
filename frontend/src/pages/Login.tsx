@@ -25,12 +25,6 @@ const Login = () => {
         >
           Fazer login
         </button>
-        {/* <button
-          onClick={() => navigate('/recuperar-senha')}
-          className="text-slate text-sm hover:text-teal transition-colors duration-200"
-        >
-          Esqueceu sua senha?
-        </button> */}
       </div>
     </AuthCard>
   );

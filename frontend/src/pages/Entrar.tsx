@@ -54,7 +54,7 @@ const Entrar = () => {
           loginWithProfile({
             name: profile.display_name ?? profile.name ?? 'Usuário',
             email: profile.email ?? email,
-            avatar: profile.images?.[0]?.url ?? '',
+            avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=user',
             plan: profile.product ?? 'free',
             followers: profile.followers?.total ?? 0,
           });
@@ -144,23 +144,6 @@ const Entrar = () => {
           </button>
         </form>
 
-        <div className="w-full h-px bg-slate/20" />
-
-        <button
-          onClick={handleSpotifyLogin}
-          disabled={loading}
-          className="w-full py-3 px-4 rounded-xl bg-green-bright text-off-white font-body font-semibold text-base hover:brightness-110 transition-all duration-200 hover:scale-[1.02] flex items-center justify-center gap-3 disabled:opacity-70"
-        >
-          {loading ? (
-            <Loader2 size={20} className="animate-spin" />
-          ) : (
-            <>
-              <div className="w-5 h-5 rounded-full bg-[#1DB954] flex items-center justify-center text-xs font-bold text-black">♪</div>
-              Continuar com Spotify
-            </>
-          )}
-        </button>
-
         <button
           onClick={() => navigate('/recuperar-senha')}
           className="text-slate text-sm hover:text-green-bright transition-colors duration-200"
@@ -174,33 +157,6 @@ const Entrar = () => {
             Criar conta
           </button>
         </p>
-
-        {/* <div className="w-full h-px bg-[hsla(0,0%,100%,0.1)]" /> */}
-        {/* <div className="w-full">
-          <p className="text-slate text-xs mb-2 text-center font-mono-label">Demo: Entrar como</p>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setSelectedRole('user')}
-              className={`flex-1 py-2 rounded-tag text-sm font-body transition-all duration-200 ${
-                selectedRole === 'user'
-                  ? 'bg-teal text-off-white'
-                  : 'glass text-slate hover:text-off-white'
-              }`}
-            >
-              Usuário Comum
-            </button>
-            <button
-              onClick={() => setSelectedRole('moderator')}
-              className={`flex-1 py-2 rounded-tag text-sm font-body transition-all duration-200 ${
-                selectedRole === 'moderator'
-                  ? 'bg-gold text-midnight'
-                  : 'glass text-slate hover:text-off-white'
-              }`}
-            >
-              Moderador
-            </button>
-          </div>
-        </div> */}
       </div>
     </AuthCard>
   );

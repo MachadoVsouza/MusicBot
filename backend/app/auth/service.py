@@ -92,10 +92,13 @@ class AuthService:
                 "https://api.spotify.com/v1/me",
                 headers={"Authorization": f"Bearer {access_token}"}
             )
-            if resp.ok:
-                return resp.json()
+            print(f"[DEBUG] fetch_spotify_profile status={resp.status_code}")
+            if not resp.ok:
+                print(f"[ERROR] Spotify /me retornou: {resp.status_code} {resp.text}")
+                return None
+            return resp.json()
         except Exception:
-            pass
+            print(f"[ERROR] fetch_spotify_profile exception: {e}")
         return None
 
     def handle_spotify_callback(self) -> dict:

@@ -36,7 +36,7 @@ export async function getAuthenticatedUser(): Promise<UserProfile | null> {
     return {
       name: data.display_name ?? data.name ?? '',
       email: data.email ?? '',
-      avatar: data.avatar ?? data.images?.[0]?.url ?? '',
+      avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=user',
       plan: data.plan ?? data.product ?? 'free',
       followers: data.followers?.total ?? data.followers ?? 0,
     };
