@@ -42,10 +42,9 @@ def callback():
     if flow == "login":
         jwt = create_access_token(identity=result["spotify_id"])
         token_enc = urllib.parse.quote(jwt)
-        return redirect(f"{frontend}/chat?token={token_enc}")
+        # Redireciona para /callback no frontend — que salva o token e vai para /chat
+        return redirect(f"{frontend}/auth/callback?token={token_enc}")
     else:
-        # registro: frontend precisa coletar email/senha ainda
-        # passa spotify_id temporariamente (sessão ainda ativa)
         return redirect(f"{frontend}/registration-form")
 
 
@@ -112,12 +111,10 @@ def set_password():
 
 @auth_bp.post("/logout")
 def logout():
-    # JWT é stateless — o frontend apenas descarta o token
     return "", 204
 
 
 @auth_bp.get("/me")
 @jwt_required()
 def me():
-    """Retorna o usuario_id do JWT (útil para o frontend validar o token salvo)."""
     return success({"usuario_id": get_jwt_identity()})
