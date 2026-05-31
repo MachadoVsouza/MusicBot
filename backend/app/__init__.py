@@ -1,4 +1,6 @@
+import os
 from flask import Flask
+from flask_jwt_extended import JWTManager
 from .config import get_config
 from .extensions import init_extensions
 from .core.exceptions import AppError
@@ -9,6 +11,9 @@ from .rag.blueprint import rag_bp
 def create_app() -> Flask:
     app = Flask(__name__)
     app.config.from_object(get_config())
+
+    app.config["JWT_SECRET_KEY"] = os.environ.get("JWT_SECRET_KEY", "dev-secret-inseguro")
+    JWTManager(app)
 
     init_extensions(app)
     _register_blueprints(app)

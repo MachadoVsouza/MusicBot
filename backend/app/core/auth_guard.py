@@ -1,38 +1,44 @@
 import functools
 import requests
 from flask import current_app
+from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
 from app.auth.repository import AuthRepository
 from app.core.http import unauthorized
 
 
 def require_auth(f):
     """
-    Decorator que garante que a requisição tem um access_token válido.
-    Tenta refresh automático se o token estiver expirado.
-    Injeta (token, usuario_id) como primeiros argumentos da função decorada.
+    Decorator JWT: valida o Bearer token, injeta (spotify_token, usuario_id).
+    Tenta refresh automático do token Spotify se expirado.
     """
     @functools.wraps(f)
     def wrapper(*args, **kwargs):
-        repo  = AuthRepository()
-        token = repo.get_access_token()
-        usuario_id = repo.get_usuario_id()
+        try:
+            verify_jwt_in_request()
+        except Exception:
+            return unauthorized("Token inválido ou ausente")
 
-        if not token or not usuario_id:
+        usuario_id = get_jwt_identity()
+        if not usuario_id:
             return unauthorized()
 
-        # Verifica se o token ainda é válido
-        if not _is_token_valid(token):
-            token = _try_refresh(repo)
-            if not token:
-                repo.clear()
-                return unauthorized("Sessão expirada. Faça login novamente.")
+        repo = AuthRepository()
+        usuario = repo.get_usuario_by_spotify_id(usuario_id)
+        if not usuario:
+            return unauthorized("Usuário não encontrado")
 
-        return f(token, usuario_id, *args, **kwargs)
+        spotify_token = usuario.spotify_token
+
+        if not _is_token_valid(spotify_token):
+            spotify_token = _try_refresh(repo, usuario)
+            if not spotify_token:
+                return unauthorized("Sessão Spotify expirada. Faça login novamente.")
+
+        return f(spotify_token, usuario_id, *args, **kwargs)
     return wrapper
 
 
 def _is_token_valid(token: str) -> bool:
-    """Faz uma chamada leve à API para verificar o token."""
     try:
         resp = requests.get(
             f"{current_app.config['SPOTIFY_API_BASE']}/me",
@@ -44,13 +50,12 @@ def _is_token_valid(token: str) -> bool:
         return False
 
 
-def _try_refresh(repo: AuthRepository) -> str | None:
-    """Tenta obter um novo access_token usando o refresh_token."""
-    refresh_token = repo.get_refresh_token()
+def _try_refresh(repo: AuthRepository, usuario) -> str | None:
+    refresh_token = usuario.spotify_refresh_token
     if not refresh_token:
         return None
 
-    cfg  = current_app.config
+    cfg = current_app.config
     resp = requests.post(cfg["SPOTIFY_TOKEN_URL"], data={
         "grant_type":    "refresh_token",
         "refresh_token": refresh_token,
@@ -60,9 +65,9 @@ def _try_refresh(repo: AuthRepository) -> str | None:
     if not resp.ok:
         return None
 
-    tokens        = resp.json()
-    new_token     = tokens["access_token"]
-    new_refresh   = tokens.get("refresh_token", refresh_token)  # Spotify nem sempre retorna novo refresh
+    tokens      = resp.json()
+    new_token   = tokens["access_token"]
+    new_refresh = tokens.get("refresh_token", refresh_token)
 
-    repo.save_tokens(new_token, new_refresh)
+    repo.update_user_spotify_tokens(usuario.spotify_id, new_token, new_refresh)
     return new_token

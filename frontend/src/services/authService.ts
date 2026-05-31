@@ -17,6 +17,7 @@ export interface RegisterResponse {
   success: boolean;
   error?: string;
   message?: string;
+  token?: string;
 }
 
 export function redirectToSpotifyAuth(): void {
@@ -64,7 +65,7 @@ export async function registerUser(data: RegisterData): Promise<RegisterResponse
       };
     }
 
-    return { success: true };
+    return { success: true, token: body.data?.token || body.token };
   } catch (err) {
     console.error('Erro ao registrar usuário:', err);
     return {
@@ -92,6 +93,7 @@ export interface LoginResponse {
   error?: string;
   message?: string;
   usuario_id?: string;
+  token?: string;
 }
 
 export async function loginWithPassword(data: LoginData): Promise<LoginResponse> {
@@ -112,7 +114,7 @@ export async function loginWithPassword(data: LoginData): Promise<LoginResponse>
       };
     }
 
-    return { success: true, usuario_id: body.data?.usuario_id };
+    return { success: true, usuario_id: body.data?.usuario_id, token: body.data?.token || body.token };
   } catch (err) {
     console.error('Erro ao fazer login com senha:', err);
     return {
