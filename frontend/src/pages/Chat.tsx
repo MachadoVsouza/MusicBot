@@ -237,26 +237,32 @@ const Chat = () => {
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => { e.preventDefault(); e.stopPropagation(); if (!isTyping) handleSendMessage(); };
 
-  const handlePreviousConversation = () => {
-    if (!canNavigateConversations) return;
-    const idx = conversations.findIndex((c) => c.id === currentConversationId);
-    const next = idx <= 0 ? conversations.length - 1 : idx - 1;
-    setCurrentConversationId(conversations[next].id); setMessages(conversations[next].messages);
-  };
-  const handleNextConversation = () => {
-    if (!canNavigateConversations) return;
-    const idx = conversations.findIndex((c) => c.id === currentConversationId);
-    const next = idx >= conversations.length - 1 ? 0 : idx + 1;
-    setCurrentConversationId(conversations[next].id); setMessages(conversations[next].messages);
-  };
-  const handleSelectConversation = async (id: string) => {
-    setCurrentConversationId(id); setMessages([]); setShowHistory(false);
+  const loadConversationMessages = async (id: string) => {
+    setCurrentConversationId(id);
+    setMessages([]);
     try {
       const res = await authFetch(`${API}/chat/${id}/messages`);
       if (!res.ok) return;
       const data = await res.json();
       setMessages(data.messages ?? []);
     } catch { }
+  };
+
+  const handlePreviousConversation = () => {
+    if (!canNavigateConversations) return;
+    const idx = conversations.findIndex((c) => c.id === currentConversationId);
+    const next = idx <= 0 ? conversations.length - 1 : idx - 1;
+    loadConversationMessages(conversations[next].id);
+  };
+  const handleNextConversation = () => {
+    if (!canNavigateConversations) return;
+    const idx = conversations.findIndex((c) => c.id === currentConversationId);
+    const next = idx >= conversations.length - 1 ? 0 : idx + 1;
+    loadConversationMessages(conversations[next].id);
+  };
+  const handleSelectConversation = async (id: string) => {
+    setShowHistory(false);
+    await loadConversationMessages(id);
   };
 
   // ── Export ──────────────────────────────────────────────────────────────────
