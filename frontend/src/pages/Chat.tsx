@@ -237,41 +237,55 @@ const Chat = () => {
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => { e.preventDefault(); e.stopPropagation(); if (!isTyping) handleSendMessage(); };
 
-  const handlePreviousConversation = () => {
+  const handlePreviousConversation = async () => {
     if (!canNavigateConversations) return;
     const idx = conversations.findIndex((c) => c.id === currentConversationId);
     const next = idx <= 0 ? conversations.length - 1 : idx - 1;
-    setCurrentConversationId(conversations[next].id); setMessages(conversations[next].messages);
+    const nextChatId = conversations[next].id;
+    setCurrentConversationId(nextChatId);
+    
+    try {
+      const res = await fetch(`${API}/chat/${nextChatId}/messages`, { credentials: 'include' });
+      if (!res.ok) return;
+      const data = await res.json();
+      setMessages(data.messages);
+    } catch {
+      setMessages([]);
+    }
   };
-  const handleNextConversation = () => {
+
+  const handleNextConversation = async () => {
     if (!canNavigateConversations) return;
     const idx = conversations.findIndex((c) => c.id === currentConversationId);
     const next = idx >= conversations.length - 1 ? 0 : idx + 1;
-    setCurrentConversationId(conversations[next].id); setMessages(conversations[next].messages);
-  };
-  const handleSelectConversation = async (id: string) => {
-    setCurrentConversationId(id); setMessages([]); setShowHistory(false);
+    const nextChatId = conversations[next].id;
+    setCurrentConversationId(nextChatId);
+    
     try {
-      const res = await authFetch(`${API}/chat/${id}/messages`);
+      const res = await fetch(`${API}/chat/${nextChatId}/messages`, { credentials: 'include' });
       if (!res.ok) return;
       const data = await res.json();
-      setMessages(data.messages ?? []);
-    } catch { }
+      setMessages(data.messages);
+    } catch {
+      setMessages([]);
+    }
   };
 
-  // ── Export ──────────────────────────────────────────────────────────────────
-  const handleExport = async (format: 'txt' | 'json' | 'md') => {
-    if (!currentConversationId) return;
-    setShowExportMenu(false);
-    const res = await authFetch(`${API}/chat/${currentConversationId}/export?format=${format}`);
-    if (!res.ok) return;
-    const blob = await res.blob();
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href     = url;
-    a.download = `chat_${currentConversationId}.${format}`;
-    a.click();
-    URL.revokeObjectURL(url);
+  const handleSelectConversation = async (id: string) => {
+    const selected = conversations.find((c) => c.id === id);
+    if (!selected) return;
+    setCurrentConversationId(selected.id);
+    
+    try {
+      const res = await fetch(`${API}/chat/${id}/messages`, { credentials: 'include' });
+      if (!res.ok) return;
+      const data = await res.json();
+      setMessages(data.messages);
+    } catch {
+      setMessages([]);
+    }
+    
+    setShowHistory(false);
   };
 
   const userAvatar = user?.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user?.name ?? 'U')}`;

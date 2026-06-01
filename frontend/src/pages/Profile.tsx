@@ -51,7 +51,7 @@ export default function Profile() {
         setUser({
           name: profileData.display_name ?? profileData.name ?? "",
           email: profileData.email ?? "",
-          avatar: profileData.avatar ?? profileData.images?.[0]?.url ?? "",
+          avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=user',
           plan: profileData.plan ?? "FREE",
           followers: profileData.followers ?? 0,
         });

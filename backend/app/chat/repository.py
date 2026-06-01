@@ -90,3 +90,31 @@ class ChatRepository:
             return historico
         finally:
             db.close()
+
+    def get_mensagens_completas(self, chat_id: int) -> list[dict]:
+        """
+        Retorna todas as mensagens de um chat (perguntas + respostas)
+        no formato esperado pelo frontend.
+        """
+        db = get_session()
+        try:
+            perguntas = db.query(Pergunta).filter(
+                Pergunta.chat_id == chat_id,
+            ).order_by(Pergunta.created_at.asc()).all()
+
+            mensagens = []
+            for p in perguntas:
+                mensagens.append({
+                    "role": "user",
+                    "content": p.conteudo,
+                    "timestamp": p.created_at.isoformat(),
+                })
+                if p.resposta:
+                    mensagens.append({
+                        "role": "bot",
+                        "content": p.resposta.conteudo,
+                        "timestamp": p.resposta.created_at.isoformat(),
+                    })
+            return mensagens
+        finally:
+            db.close()

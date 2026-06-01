@@ -33,11 +33,11 @@ export async function getAuthenticatedUser(): Promise<UserProfile | null> {
     const data = await res.json();
     const profile = data.data ?? data;
     return {
-      name:      profile.display_name ?? profile.name ?? '',
-      email:     profile.email ?? '',
-      avatar:    profile.avatar ?? profile.images?.[0]?.url ?? '',
-      plan:      profile.plan ?? profile.product ?? 'free',
-      followers: profile.followers?.total ?? profile.followers ?? 0,
+      name: data.display_name ?? data.name ?? '',
+      email: data.email ?? '',
+      avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=user',
+      plan: data.plan ?? data.product ?? 'free',
+      followers: data.followers?.total ?? data.followers ?? 0,
     };
   } catch (err) {
     console.error('Erro ao buscar perfil autenticado:', err);
