@@ -24,7 +24,7 @@ dist-ssr
 *.sw?
 
 wikipedia_files/
-
+comentarios/
 # Python cache
 __pycache__/
 *.pyc

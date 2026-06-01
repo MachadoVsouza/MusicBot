@@ -8,7 +8,7 @@ import { Loader2 } from 'lucide-react';
 
 const AuthCallback = () => {
   const navigate = useNavigate();
-  const { loginWithProfile } = useAuth();
+  const { loginWithProfile, loginWithToken } = useAuth();
   const [status, setStatus] = useState<'loading' | 'error'>('loading');
 
   useEffect(() => {
@@ -17,6 +17,17 @@ const AuthCallback = () => {
       localStorage.removeItem('auth_flow');
 
       try {
+        const params = new URLSearchParams(window.location.search);
+        const tokenFromUrl = params.get('token');
+
+        if (tokenFromUrl) {
+          localStorage.setItem('musicbot_jwt', tokenFromUrl);
+          window.history.replaceState({}, '', '/chat');
+          await loginWithToken(tokenFromUrl);
+          navigate('/chat', { replace: true });
+          return;
+        }
+
         const profile = await getAuthenticatedUser();
 
         if (profile) {
@@ -41,7 +52,7 @@ const AuthCallback = () => {
     };
 
     handleCallback();
-  }, [navigate, loginWithProfile]);
+  }, [navigate, loginWithProfile, loginWithToken]);
 
   return (
     <AuthCard>

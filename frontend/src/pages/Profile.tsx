@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { authFetch } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 
 const API = "/api";
@@ -36,8 +37,8 @@ export default function Profile() {
     async function load() {
       try {
         const [profileRes, tracksRes] = await Promise.all([
-          fetch(`${API}/profile`, { credentials: "include" }),
-          fetch(`${API}/recently-played`, { credentials: "include" }),
+          authFetch(`${API}/spotify/profile`),
+          authFetch(`${API}/spotify/recently-played`),
         ]);
 
         if (!profileRes.ok) {
@@ -45,7 +46,8 @@ export default function Profile() {
           return;
         }
 
-        const profileData = await profileRes.json();
+        const profileJson = await profileRes.json();
+        const profileData = profileJson.data ?? profileJson;
         setUser({
           name: profileData.display_name ?? profileData.name ?? "",
           email: profileData.email ?? "",
@@ -68,7 +70,7 @@ export default function Profile() {
   }, [navigate]);
 
   async function handleLogout() {
-    await fetch(`${API}/logout`, { credentials: "include" });
+    await fetch(`${API}/auth/logout`, { method: "POST" });
     navigate("/login");
   }
 

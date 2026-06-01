@@ -67,6 +67,7 @@ services:
       # PYTHONUNBUFFERED: "1"
       DATABASE_URL:          postgresql://admin:admin@db:5432/MusicBot
       APP_SECRET_KEY:        musicbot-dev-secret-key
+      JWT_SECRET_KEY:        ${JWT_SECRET_KEY:-musicbot-jwt-secret-32-chars-ok!}
       SPOTIFY_CLIENT_ID:     ${SPOTIFY_CLIENT_ID}
       SPOTIFY_CLIENT_SECRET: ${SPOTIFY_CLIENT_SECRET}
       HUGGINGFACE_TOKEN:     ${HUGGINGFACE_TOKEN}

@@ -1,4 +1,11 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useEffect,
+  ReactNode,
+} from 'react';
 import type { UserProfile } from '@/services/authService';
 
 export type UserRole = 'user' | 'moderator';
@@ -14,11 +21,14 @@ export interface User {
 
 interface AuthContextType {
   user: User | null;
-  login: (role: UserRole) => void;
-  loginWithProfile: (profile: UserProfile) => void;
+  token: string | null;
+  loginWithProfile: (profile: UserProfile, jwt: string) => void;
+  loginWithToken: (jwt: string) => Promise<boolean>;
   logout: () => void;
   isLoggedIn: boolean;
 }
+
+const TOKEN_KEY = 'musicbot_jwt';
 
 export const AuthContext = createContext<AuthContextType | null>(null);
 
@@ -30,32 +40,78 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(() => localStorage.getItem(TOKEN_KEY));
 
-  const login = (role: UserRole) => {
-    setUser({
-      name: 'João Silva',
-      email: 'joao@email.com',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=joao',
-      role: 'moderator',
+  /** Valida o token salvo ao montar (ex: reload de página) */
+  useEffect(() => {
+    if (token && !user) {
+      fetchMe(token).catch(() => logout());
+    }
+  }, []);
+
+  async function fetchMe(jwt: string): Promise<void> {
+    const res = await fetch('/auth/me', {
+      headers: { Authorization: `Bearer ${jwt}` },
     });
+    if (!res.ok) throw new Error('invalid token');
+    // /auth/me só retorna usuario_id; o perfil completo já deve estar
+    // carregado ou pode ser buscado em /spotify/profile se necessário
+  }
+
+  const _saveToken = (jwt: string) => {
+    localStorage.setItem(TOKEN_KEY, jwt);
+    setToken(jwt);
   };
 
-  const loginWithProfile = useCallback((profile: UserProfile) => {
+  /** Usado após callback Spotify ou register (temos o perfil na mão) */
+  const loginWithProfile = useCallback((profile: UserProfile, jwt: string) => {
+    _saveToken(jwt);
     setUser({
-      name: profile.name,
-      email: profile.email,
-      avatar: profile.avatar,
-      role: 'moderator',
-      plan: profile.plan,
+      name:      profile.name,
+      email:     profile.email,
+      avatar:    profile.avatar,
+      role:      'moderator',
+      plan:      profile.plan,
       followers: profile.followers,
     });
   }, []);
 
-  const logout = () => setUser(null);
+  /** Usado após login-custom (não temos o perfil, só o JWT) */
+  const loginWithToken = useCallback(async (jwt: string): Promise<boolean> => {
+    try {
+      await fetchMe(jwt);
+      _saveToken(jwt);
+      // Perfil pode ser carregado depois via /spotify/profile com o token
+      return true;
+    } catch {
+      return false;
+    }
+  }, []);
+
+  const logout = useCallback(() => {
+    localStorage.removeItem(TOKEN_KEY);
+    setToken(null);
+    setUser(null);
+  }, []);
 
   return (
-    <AuthContext.Provider value={{ user, login, loginWithProfile, logout, isLoggedIn: !!user }}>
+    <AuthContext.Provider
+      value={{ user, token, loginWithProfile, loginWithToken, logout, isLoggedIn: !!token }}
+    >
       {children}
     </AuthContext.Provider>
   );
 };
+
+/** Helper para fazer fetch autenticado em qualquer lugar do app */
+export function authFetch(url: string, options: RequestInit = {}): Promise<Response> {
+  const jwt = localStorage.getItem(TOKEN_KEY);
+  return fetch(url, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(options.headers || {}),
+      ...(jwt ? { Authorization: `Bearer ${jwt}` } : {}),
+    },
+  });
+}

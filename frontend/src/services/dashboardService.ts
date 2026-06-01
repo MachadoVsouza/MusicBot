@@ -1,3 +1,5 @@
+import { authFetch } from '@/contexts/AuthContext';
+
 const API_BASE = '/api';
 
 export type DashboardPeriod = 'today' | 'week' | 'month';
@@ -36,7 +38,7 @@ export interface DashboardReview {
 }
 
 async function apiFetch<T>(path: string): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, { credentials: 'include' });
+  const res = await authFetch(`${API_BASE}${path}`);
   if (!res.ok) throw new Error(`Dashboard API error: ${res.status}`);
   return res.json() as Promise<T>;
 }

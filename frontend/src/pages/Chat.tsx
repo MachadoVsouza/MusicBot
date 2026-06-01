@@ -1,61 +1,67 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Bug,
-  ChevronLeft,
-  ChevronRight,
-  Download,
-  ExternalLink,
-  MessageSquare,
-  Settings,
-  ThumbsDown,
-  ThumbsUp,
-  UserCircle,
-  X,
+  Bug, ChevronLeft, ChevronRight, Download, ExternalLink,
+  MessageSquare, Music, Paperclip, Pause, Play, Settings,
+  Square, ThumbsDown, ThumbsUp, UserCircle, X,
 } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth, authFetch } from '@/contexts/AuthContext';
 import MusicbotLogo from '@/components/MusicbotLogo';
 
 const API = '/api';
-
 type MessageRole = 'user' | 'bot';
 type ConversationRating = 'positive' | 'negative' | null;
 
-interface Source {
-  name: string;
-  category: string;
-  origin: string;
-  date: string;
-  version: string;
-  excerpt: string;
-}
-
-interface Message {
-  id: string;
-  role: MessageRole;
-  content: string;
-  timestamp: string;
-  sources?: Source[];
-}
-
-interface Conversation {
-  id: string;
-  title: string;
-  updatedAt: string;
-  messages: Message[];
-}
-
-interface ChatApiResponse {
-  id: string | number;
-  titulo: string;
-  updated_at: string;
-}
+interface Source { name: string; category: string; origin: string; date: string; version: string; excerpt: string; }
+interface Midia { tipo: string; preview_url: string; nome: string; artista: string; url: string; }
+interface Message { id: string; role: MessageRole; content: string; timestamp: string; sources?: Source[]; midia?: Midia | null; streaming?: boolean; }
+interface Conversation { id: string; title: string; updatedAt: string; messages: Message[]; }
+interface ChatApiResponse { id: string | number; titulo: string; updated_at: string; }
 
 const DEFAULT_BOT_REPLY = 'No momento não foi possível gerar uma resposta. Tente novamente mais tarde.';
+const fmt = (iso?: string) => new Date(iso ?? Date.now()).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
-const fmt = (iso?: string) =>
-  new Date(iso ?? Date.now()).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+// ── Mini Player ───────────────────────────────────────────────────────────────
+const MiniPlayer = ({ midia }: { midia: Midia }) => {
+  const [playing, setPlaying] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const toggle = () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (playing) { audio.pause(); } else { audio.play(); }
+    setPlaying(!playing);
+  };
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    const onTimeUpdate = () => setProgress((audio.currentTime / audio.duration) * 100 || 0);
+    const onEnded = () => { setPlaying(false); setProgress(0); };
+    audio.addEventListener('timeupdate', onTimeUpdate);
+    audio.addEventListener('ended', onEnded);
+    return () => { audio.removeEventListener('timeupdate', onTimeUpdate); audio.removeEventListener('ended', onEnded); };
+  }, []);
+  return (
+    <div className="mt-3 bg-[#181818] border border-[#3E3E3E] rounded-xl p-3 flex items-center gap-3">
+      <audio ref={audioRef} src={midia.preview_url} preload="none" />
+      <button type="button" onClick={toggle} className="w-9 h-9 rounded-full bg-[#1DB954] flex items-center justify-center shrink-0 hover:brightness-110 transition-all">
+        {playing ? <Pause size={16} className="text-black" /> : <Play size={16} className="text-black ml-0.5" />}
+      </button>
+      <div className="flex-1 min-w-0">
+        <p className="text-off-white text-xs font-semibold truncate">{midia.nome}</p>
+        <p className="text-slate text-xs truncate">{midia.artista}</p>
+        <div className="mt-1.5 h-1 bg-[#3E3E3E] rounded-full overflow-hidden">
+          <div className="h-full bg-[#1DB954] rounded-full transition-all" style={{ width: `${progress}%` }} />
+        </div>
+      </div>
+      <a href={midia.url} target="_blank" rel="noopener noreferrer" className="shrink-0 text-slate hover:text-[#1DB954] transition-colors" title="Abrir no Spotify">
+        <Music size={16} />
+      </a>
+    </div>
+  );
+};
 
+// ── Chat ──────────────────────────────────────────────────────────────────────
 const Chat = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
@@ -67,176 +73,169 @@ const Chat = () => {
   const [historyLoading, setHistoryLoading] = useState(true);
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
   const [conversationRating, setConversationRating] = useState<ConversationRating>(null);
-
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [showHistory, setShowHistory] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
   const [showPreferences, setShowPreferences] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [selectedSource, setSelectedSource] = useState<Source | null>(null);
-
   const [feedbackText, setFeedbackText] = useState('');
   const [preferences, setPreferences] = useState({ audioEnabled: true, compactMode: false });
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const textareaRef    = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef   = useRef<HTMLInputElement>(null);
+  const abortRef       = useRef<AbortController | null>(null);
 
   const resizeTextarea = () => {
-    const textarea = textareaRef.current;
-    if (!textarea) return;
-    textarea.style.height = 'auto';
-    textarea.style.height = `${Math.min(textarea.scrollHeight, 160)}px`;
+    const ta = textareaRef.current;
+    if (!ta) return;
+    ta.style.height = 'auto';
+    ta.style.height = `${Math.min(ta.scrollHeight, 160)}px`;
   };
 
-  const displayName = useMemo(() => {
-    if (!user?.name) return 'Visitante';
-    return user.name.split(' ')[0];
-  }, [user?.name]);
-
-  const currentConversation = useMemo(
-    () => conversations.find((c) => c.id === currentConversationId) ?? null,
-    [conversations, currentConversationId],
-  );
-
+  const displayName = useMemo(() => { if (!user?.name) return 'Visitante'; return user.name.split(' ')[0]; }, [user?.name]);
+  const currentConversation = useMemo(() => conversations.find((c) => c.id === currentConversationId) ?? null, [conversations, currentConversationId]);
   const conversationTitle = currentConversation?.title ?? 'Nova conversa';
   const canNavigateConversations = conversations.length > 0;
 
-  // ── Carrega lista de chats ao montar ────────────────────────────────────────
   useEffect(() => {
     const loadChats = async () => {
       try {
-        const res = await fetch(`${API}/chat/`, { credentials: 'include' });
+        const res = await authFetch(`${API}/chat/`);
         if (!res.ok) return;
         const data = await res.json();
-        const loaded: Conversation[] = (data.chats ?? []).map((c: ChatApiResponse) => ({
-          id: String(c.id),
-          title: c.titulo,
-          updatedAt: new Date(c.updated_at).toLocaleDateString('pt-BR'),
-          messages: [],
-        }));
-        setConversations(loaded);
-      } catch {
-        // silently fail
-      } finally {
-        setHistoryLoading(false);
-      }
+        setConversations((data.chats ?? []).map((c: ChatApiResponse) => ({ id: String(c.id), title: c.titulo, updatedAt: new Date(c.updated_at).toLocaleDateString('pt-BR'), messages: [] })));
+      } catch { } finally { setHistoryLoading(false); }
     };
     loadChats();
   }, []);
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isTyping]);
+  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, isTyping]);
+  useEffect(() => { resizeTextarea(); }, [inputValue]);
 
-  useEffect(() => {
-    resizeTextarea();
-  }, [inputValue]);
-
-  // ── Helpers de navegação ────────────────────────────────────────────────────
-  const openDashboard = () => { setShowSettings(false); navigate('/dashboard'); };
+  const openDashboard     = () => { setShowSettings(false); navigate('/dashboard'); };
   const openKnowledgeBase = () => { setShowSettings(false); navigate('/base-conhecimento'); };
-  const openProfile = () => { setShowSettings(false); navigate('/profile'); };
-  const handleLogout = () => { setShowSettings(false); logout(); navigate('/login'); };
+  const openProfile       = () => { setShowSettings(false); navigate('/profile'); };
+  const handleLogout      = () => { setShowSettings(false); logout(); navigate('/login'); };
 
-  // ── Criar novo chat no backend ──────────────────────────────────────────────
   const handleNewConversation = async () => {
     try {
-      const res = await fetch(`${API}/chat/`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ titulo: 'Nova conversa' }),
-      });
+      const res = await authFetch(`${API}/chat/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ titulo: 'Nova conversa' }) });
       if (!res.ok) return;
       const data = await res.json();
-      const novo: Conversation = {
-        id: String(data.chat_id),
-        title: data.titulo,
-        updatedAt: new Date().toLocaleDateString('pt-BR'),
-        messages: [],
-      };
+      const novo: Conversation = { id: String(data.chat_id), title: data.titulo, updatedAt: new Date().toLocaleDateString('pt-BR'), messages: [] };
       setConversations((prev) => [novo, ...prev]);
       setCurrentConversationId(novo.id);
       setMessages([]);
       setConversationRating(null);
       setShowHistory(false);
-    } catch {
-      // silently fail
-    }
+    } catch { }
   };
 
-  // ── Enviar mensagem ao backend ──────────────────────────────────────────────
+  // ── Stop streaming ──────────────────────────────────────────────────────────
+  const handleStop = () => {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    setIsTyping(false);
+    // Marca a última mensagem do bot como finalizada
+    setMessages((prev) => prev.map((m, i) => i === prev.length - 1 && m.role === 'bot' ? { ...m, streaming: false } : m));
+  };
+
+  // ── Send message com streaming ──────────────────────────────────────────────
   const handleSendMessage = async () => {
     const text = inputValue.trim();
-    if (!text) return;
+    if (!text && !selectedFile) return;
 
-    // Garante que existe um chat ativo
     let chatId = currentConversationId;
     if (!chatId) {
       try {
-        const res = await fetch(`${API}/chat/`, {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ titulo: text.slice(0, 50) }),
-        });
+        const res = await authFetch(`${API}/chat/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ titulo: (text || 'Arquivo').slice(0, 50) }) });
         if (!res.ok) return;
         const data = await res.json();
         chatId = String(data.chat_id);
-        const novo: Conversation = {
-          id: chatId,
-          title: data.titulo,
-          updatedAt: new Date().toLocaleDateString('pt-BR'),
-          messages: [],
-        };
-        setConversations((prev) => [novo, ...prev]);
+        setConversations((prev) => [{ id: chatId!, title: data.titulo, updatedAt: new Date().toLocaleDateString('pt-BR'), messages: [] }, ...prev]);
         setCurrentConversationId(chatId);
       } catch { return; }
     }
 
-    // Mostra a mensagem do usuário imediatamente
     const userMessage: Message = {
-      id: `u-${Date.now()}`,
-      role: 'user',
-      content: text,
+      id: `u-${Date.now()}`, role: 'user',
+      content: selectedFile ? `${text}${text ? '\n' : ''}📎 ${selectedFile.name}` : text,
       timestamp: fmt(),
     };
     setMessages((prev) => [...prev, userMessage]);
     setInputValue('');
+    setSelectedFile(null);
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
     setIsTyping(true);
 
-    try {
-      const res = await fetch(`${API}/chat/${chatId}/message`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mensagem: text }),
-      });
+    // Placeholder da mensagem do bot (streaming)
+    const botId = `b-${Date.now()}`;
+    setMessages((prev) => [...prev, { id: botId, role: 'bot', content: '', timestamp: fmt(), streaming: true }]);
 
-      const data = await res.json();
-      const botMessage: Message = {
-        id: `b-${Date.now()}`,
-        role: 'bot',
-        content: res.ok ? data.resposta : DEFAULT_BOT_REPLY,
-        timestamp: fmt(),
-      };
-      setMessages((prev) => [...prev, botMessage]);
-    } catch {
-      setMessages((prev) => [
-        ...prev,
-        { id: `b-${Date.now()}`, role: 'bot', content: DEFAULT_BOT_REPLY, timestamp: fmt() },
-      ]);
+    abortRef.current = new AbortController();
+
+    try {
+      let response: Response;
+
+      if (selectedFile) {
+        // Upload de arquivo — usa rota multipart
+        const form = new FormData();
+        form.append('mensagem', text);
+        form.append('arquivo', selectedFile);
+        const jwt = localStorage.getItem('musicbot_jwt');
+        response = await fetch(`${API}/chat/${chatId}/message-with-file`, {
+          method: 'POST', body: form, signal: abortRef.current.signal,
+          headers: jwt ? { Authorization: `Bearer ${jwt}` } : {},
+        });
+        const data = await response.json();
+        setMessages((prev) => prev.map((m) => m.id === botId ? { ...m, content: data.resposta ?? DEFAULT_BOT_REPLY, streaming: false, midia: data.midia ?? null } : m));
+      } else {
+        // Streaming SSE
+        response = await authFetch(`${API}/chat/${chatId}/stream`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mensagem: text }),
+          signal: abortRef.current.signal,
+        });
+
+        const reader  = response.body!.getReader();
+        const decoder = new TextDecoder();
+        let   buffer  = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() ?? '';
+
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue;
+            const json = JSON.parse(line.slice(6));
+
+            if (json.chunk !== undefined) {
+              setMessages((prev) => prev.map((m) => m.id === botId ? { ...m, content: m.content + json.chunk } : m));
+            }
+            if (json.done) {
+              setMessages((prev) => prev.map((m) => m.id === botId ? { ...m, streaming: false, midia: json.midia ?? null } : m));
+            }
+          }
+        }
+      }
+    } catch (e: unknown) {
+      if (e instanceof Error && e.name !== 'AbortError') {
+        setMessages((prev) => prev.map((m) => m.id === botId ? { ...m, content: DEFAULT_BOT_REPLY, streaming: false } : m));
+      }
     } finally {
       setIsTyping(false);
+      abortRef.current = null;
     }
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    event.stopPropagation();
-    if (!isTyping) handleSendMessage();
-  };
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => { e.preventDefault(); e.stopPropagation(); if (!isTyping) handleSendMessage(); };
 
   const handlePreviousConversation = async () => {
     if (!canNavigateConversations) return;
@@ -289,35 +288,22 @@ const Chat = () => {
     setShowHistory(false);
   };
 
-  const userAvatar = user?.avatar || 'https://api.dicebear.com/7.x/initials/svg?seed=visitante';
-  const userAlt = user?.name || 'Usuário visitante';
+  const userAvatar = user?.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user?.name ?? 'U')}`;
+  const userAlt    = user?.name || 'Usuário visitante';
 
   let historyContent: JSX.Element;
   if (historyLoading) {
-    historyContent = (
-      <div className="space-y-2">
-        <div className="h-12 rounded-xl bg-white/10 animate-pulse" />
-        <div className="h-12 rounded-xl bg-white/10 animate-pulse" />
-        <div className="h-12 rounded-xl bg-white/10 animate-pulse" />
-      </div>
-    );
+    historyContent = (<div className="space-y-2"><div className="h-12 rounded-xl bg-white/10 animate-pulse" /><div className="h-12 rounded-xl bg-white/10 animate-pulse" /><div className="h-12 rounded-xl bg-white/10 animate-pulse" /></div>);
   } else if (conversations.length === 0) {
     historyContent = <p className="text-slate text-sm py-4">Nenhuma conversa encontrada.</p>;
   } else {
     historyContent = (
       <div className="space-y-2 max-h-64 overflow-auto">
-        {conversations.map((conversation) => (
-          <button
-            key={conversation.id}
-            type="button"
-            onClick={() => handleSelectConversation(conversation.id)}
-            className={`w-full text-left rounded-xl px-3 py-3 transition-colors ${conversation.id === currentConversationId
-              ? 'bg-[#282828] text-white border-l-2 border-[#1DB954]'
-              : 'bg-transparent text-[#B3B3B3] hover:text-white hover:bg-[#282828]'
-              }`}
-          >
-            <p className="text-sm font-medium truncate">{conversation.title}</p>
-            <p className="text-xs mt-0.5">{conversation.updatedAt}</p>
+        {conversations.map((c) => (
+          <button key={c.id} type="button" onClick={() => handleSelectConversation(c.id)}
+            className={`w-full text-left rounded-xl px-3 py-3 transition-colors ${c.id === currentConversationId ? 'bg-[#282828] text-white border-l-2 border-[#1DB954]' : 'bg-transparent text-[#B3B3B3] hover:text-white hover:bg-[#282828]'}`}>
+            <p className="text-sm font-medium truncate">{c.title}</p>
+            <p className="text-xs mt-0.5">{c.updatedAt}</p>
           </button>
         ))}
       </div>
@@ -327,49 +313,35 @@ const Chat = () => {
   return (
     <div className="min-h-screen bg-midnight flex flex-col">
       <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full px-4 sm:px-6 lg:px-8 pt-5 sm:pt-6 pb-5">
-        <div className="flex justify-center mb-5 sm:mb-6">
-          <MusicbotLogo size="sm" />
-        </div>
+        <div className="flex justify-center mb-5 sm:mb-6"><MusicbotLogo size="sm" /></div>
 
+        {/* Mensagens */}
         <div className="flex-1 overflow-y-auto min-h-0 space-y-4 sm:space-y-5 pb-5 sm:pb-6 pr-1">
           {messages.length === 0 ? (
             <div className="bg-[#181818] rounded-2xl p-6 sm:p-8 text-center max-w-2xl mx-auto">
               <h2 className="font-display text-xl text-off-white mb-2">Bem-vindo, {displayName}</h2>
-              <p className="text-slate text-sm sm:text-base">
-                {currentConversationId ? 'Nenhuma mensagem ainda.' : 'Envie uma mensagem para começar.'}
-              </p>
+              <p className="text-slate text-sm sm:text-base">{currentConversationId ? 'Nenhuma mensagem ainda.' : 'Envie uma mensagem para começar.'}</p>
             </div>
           ) : (
             messages.map((message) => (
-              <article
-                key={message.id}
-                className={`w-full flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
-                <div
-                  className={`max-w-[90%] sm:max-w-[78%] rounded-2xl px-4 sm:px-5 py-3 sm:py-4 ${message.role === 'user'
-                    ? 'bg-[#1DB954] text-off-white rounded-br-md'
-                    : 'bg-[#282828] text-off-white rounded-bl-md'
-                    }`}
-                >
-                  <p className="text-sm sm:text-base whitespace-pre-wrap leading-relaxed">{message.content}</p>
+              <article key={message.id} className={`w-full flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[90%] sm:max-w-[78%] rounded-2xl px-4 sm:px-5 py-3 sm:py-4 ${message.role === 'user' ? 'bg-[#1DB954] text-off-white rounded-br-md' : 'bg-[#282828] text-off-white rounded-bl-md'}`}>
+                  <p className="text-sm sm:text-base whitespace-pre-wrap leading-relaxed">
+                    {message.content}
+                    {message.streaming && <span className="inline-block w-2 h-4 ml-1 bg-[#1DB954] animate-pulse rounded-sm" />}
+                  </p>
+                  {message.role === 'bot' && message.midia?.preview_url && <MiniPlayer midia={message.midia} />}
                   <div className="mt-2 text-xs text-slate flex items-center gap-2">
                     <span>{message.timestamp}</span>
                     {message.sources && message.sources.length > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => setSelectedSource(message.sources?.[0] ?? null)}
-                        className="text-[#1DB954] hover:underline"
-                      >
-                        Fonte
-                      </button>
+                      <button type="button" onClick={() => setSelectedSource(message.sources?.[0] ?? null)} className="text-[#1DB954] hover:underline">Fonte</button>
                     )}
                   </div>
                 </div>
               </article>
             ))
           )}
-
-          {isTyping && (
+          {isTyping && messages[messages.length - 1]?.streaming !== true && (
             <div className="flex items-center gap-1 bg-[#282828] rounded-2xl rounded-bl-md px-4 py-3 w-fit">
               <div className="w-2 h-2 rounded-full bg-[#1DB954] typing-dot" />
               <div className="w-2 h-2 rounded-full bg-[#1DB954] typing-dot" />
@@ -379,62 +351,57 @@ const Chat = () => {
           <div ref={messagesEndRef} />
         </div>
 
+        {/* Arquivo selecionado */}
+        {selectedFile && (
+          <div className="mb-2 flex items-center gap-2 px-3 py-2 bg-[#282828] rounded-xl text-sm text-off-white">
+            <Paperclip size={14} className="text-[#1DB954]" />
+            <span className="truncate flex-1">{selectedFile.name}</span>
+            <button type="button" onClick={() => setSelectedFile(null)} className="text-slate hover:text-off-white"><X size={14} /></button>
+          </div>
+        )}
+
+        {/* Input */}
         <form onSubmit={handleSubmit} className="bg-[#181818] border border-[#282828] rounded-2xl px-3 py-3 sm:px-4 sm:py-4">
-          <div className="flex items-end gap-3 sm:gap-4">
-            <textarea
-              ref={textareaRef}
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  handleSendMessage();
-                }
-              }}
-              placeholder="Digite sua mensagem..."
-              rows={1}
-              className="w-full min-h-[44px] resize-none overflow-y-auto bg-transparent text-off-white placeholder:text-slate focus:outline-none text-sm sm:text-base leading-6 max-h-40"
-            />
-            <button
-              type="submit"
-              disabled={!inputValue.trim() || isTyping}
-              className="shrink-0 h-11 bg-green text-off-white rounded-xl px-5 text-sm font-semibold hover:brightness-110 transition-all disabled:opacity-50"
-            >
-              Enviar
+          <div className="flex items-end gap-2 sm:gap-3">
+            {/* Botão de arquivo */}
+            <button type="button" onClick={() => fileInputRef.current?.click()} className="shrink-0 h-11 w-11 flex items-center justify-center text-slate hover:text-[#1DB954] transition-colors" title="Anexar arquivo">
+              <Paperclip size={20} />
             </button>
+            <input ref={fileInputRef} type="file" accept=".pdf,.txt,.md,.png,.jpg,.jpeg,.webp" className="hidden"
+              onChange={(e) => setSelectedFile(e.target.files?.[0] ?? null)} />
+
+            <textarea ref={textareaRef} value={inputValue} onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); e.stopPropagation(); handleSendMessage(); } }}
+              placeholder="Digite sua mensagem..." rows={1}
+              className="w-full min-h-[44px] resize-none overflow-y-auto bg-transparent text-off-white placeholder:text-slate focus:outline-none text-sm sm:text-base leading-6 max-h-40" />
+
+            {/* Botão parar / enviar */}
+            {isTyping ? (
+              <button type="button" onClick={handleStop} className="shrink-0 h-11 w-11 flex items-center justify-center bg-[#E91429] rounded-xl hover:brightness-110 transition-all" title="Parar geração">
+                <Square size={16} className="text-white fill-white" />
+              </button>
+            ) : (
+              <button type="submit" disabled={!inputValue.trim() && !selectedFile} className="shrink-0 h-11 bg-[#1DB954] text-black rounded-xl px-5 text-sm font-semibold hover:brightness-110 transition-all disabled:opacity-50">
+                Enviar
+              </button>
+            )}
           </div>
         </form>
 
+        {/* Barra inferior */}
         <div className="grid grid-cols-[1fr_auto_1fr] items-center mt-4 sm:mt-5 px-1 gap-3">
           <div className="flex items-center gap-1 sm:gap-2 justify-self-start">
-            <button
-              type="button"
-              onClick={() => setConversationRating(conversationRating === 'positive' ? null : 'positive')}
-              className={`p-2 rounded-lg transition-all duration-200 ${conversationRating === 'positive' ? 'bg-[#1ED76020] text-[#1ED760]' : 'text-slate hover:text-off-white'}`}
-            >
-              <ThumbsUp size={18} />
-            </button>
-            <button
-              type="button"
-              onClick={() => setConversationRating(conversationRating === 'negative' ? null : 'negative')}
-              className={`p-2 rounded-lg transition-all duration-200 ${conversationRating === 'negative' ? 'bg-[#E9142920] text-[#E91429]' : 'text-slate hover:text-off-white'}`}
-            >
-              <ThumbsDown size={18} />
-            </button>
-            <button type="button" onClick={() => setShowFeedback(true)} className="p-2 rounded-lg text-slate hover:text-off-white transition-colors duration-200">
-              <Bug size={18} />
-            </button>
+            <button type="button" onClick={() => setConversationRating(conversationRating === 'positive' ? null : 'positive')} className={`p-2 rounded-lg transition-all duration-200 ${conversationRating === 'positive' ? 'bg-[#1ED76020] text-[#1ED760]' : 'text-slate hover:text-off-white'}`}><ThumbsUp size={18} /></button>
+            <button type="button" onClick={() => setConversationRating(conversationRating === 'negative' ? null : 'negative')} className={`p-2 rounded-lg transition-all duration-200 ${conversationRating === 'negative' ? 'bg-[#E9142920] text-[#E91429]' : 'text-slate hover:text-off-white'}`}><ThumbsDown size={18} /></button>
+            <button type="button" onClick={() => setShowFeedback(true)} className="p-2 rounded-lg text-slate hover:text-off-white transition-colors"><Bug size={18} /></button>
             <div className="relative">
-              <button type="button" onClick={() => setShowExportMenu((prev) => !prev)} className="p-2 rounded-lg text-slate hover:text-off-white transition-colors duration-200">
-                <Download size={18} />
-              </button>
+              <button type="button" onClick={() => setShowExportMenu((p) => !p)} className="p-2 rounded-lg text-slate hover:text-off-white transition-colors"><Download size={18} /></button>
               {showExportMenu && (
                 <div className="absolute left-0 bottom-11 bg-[#282828] border border-[#3E3E3E] rounded-xl p-2 w-48 z-20">
-                  <p className="text-xs text-slate px-2 py-1">Exportação (em breve)</p>
-                  {['PDF', 'TXT', 'JSON'].map((format) => (
-                    <button key={format} type="button" disabled className="w-full text-left px-2 py-2 rounded-lg text-off-white/70 text-sm cursor-not-allowed">
-                      Exportar como {format}
+                  <p className="text-xs text-slate px-2 py-1 mb-1">Exportar conversa</p>
+                  {(['txt', 'json', 'md'] as const).map((fmt) => (
+                    <button key={fmt} type="button" onClick={() => handleExport(fmt)} className="w-full text-left px-2 py-2 rounded-lg text-off-white text-sm hover:bg-[#3E3E3E] transition-colors">
+                      Exportar como {fmt.toUpperCase()}
                     </button>
                   ))}
                 </div>
@@ -443,20 +410,15 @@ const Chat = () => {
           </div>
 
           <div className="flex items-center justify-center gap-2 min-w-0 justify-self-center">
-            <button type="button" onClick={handlePreviousConversation} disabled={!canNavigateConversations} className="p-1 text-slate hover:text-off-white transition-colors disabled:opacity-30">
-              <ChevronLeft size={18} />
-            </button>
-            <button type="button" onClick={() => setShowHistory(true)} className="text-slate text-sm hover:text-off-white transition-colors font-body max-w-[220px] truncate text-center">
-              {conversationTitle}
-            </button>
-            <button type="button" onClick={handleNextConversation} disabled={!canNavigateConversations} className="p-1 text-slate hover:text-off-white transition-colors disabled:opacity-30">
-              <ChevronRight size={18} />
-            </button>
+            <button type="button" onClick={handlePreviousConversation} disabled={!canNavigateConversations} className="p-1 text-slate hover:text-off-white transition-colors disabled:opacity-30"><ChevronLeft size={18} /></button>
+            <button type="button" onClick={() => setShowHistory(true)} className="text-slate text-sm hover:text-off-white transition-colors font-body max-w-[220px] truncate text-center">{conversationTitle}</button>
+            <button type="button" onClick={handleNextConversation} disabled={!canNavigateConversations} className="p-1 text-slate hover:text-off-white transition-colors disabled:opacity-30"><ChevronRight size={18} /></button>
           </div>
 
           <div className="relative justify-self-end">
-            <button type="button" onClick={() => setShowSettings((prev) => !prev)} className="relative">
-              <img src={userAvatar} alt={userAlt} className="w-9 h-9 rounded-full border-2 border-green-bright hover:scale-105 transition-transform duration-200" />
+            <button type="button" onClick={() => setShowSettings((p) => !p)}>
+              <img src={userAvatar} alt={userAlt} className="w-9 h-9 rounded-full border-2 border-[#1DB954] hover:scale-105 transition-transform object-cover"
+                onError={(e) => { (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user?.name ?? 'U')}`; }} />
             </button>
             {showSettings && (
               <div className="absolute right-0 bottom-12 bg-[#282828] border border-[#3E3E3E] rounded-xl p-2 w-64 z-20">
@@ -472,6 +434,7 @@ const Chat = () => {
         </div>
       </div>
 
+      {/* Modais */}
       {showHistory && (
         <div className="fixed inset-0 bg-black/70 z-30 flex items-end sm:items-center justify-center p-4">
           <div className="bg-[#181818] border border-[#282828] rounded-2xl w-full max-w-lg p-4 sm:p-5">
@@ -480,9 +443,7 @@ const Chat = () => {
               <button type="button" onClick={() => setShowHistory(false)} className="text-slate hover:text-off-white"><X size={18} /></button>
             </div>
             {historyContent}
-            <button type="button" onClick={handleNewConversation} className="mt-4 w-full bg-green text-off-white rounded-xl py-2.5 text-sm font-semibold hover:brightness-110">
-              Nova conversa
-            </button>
+            <button type="button" onClick={handleNewConversation} className="mt-4 w-full bg-[#1DB954] text-black rounded-xl py-2.5 text-sm font-semibold hover:brightness-110">Nova conversa</button>
           </div>
         </div>
       )}
@@ -495,9 +456,7 @@ const Chat = () => {
               <button type="button" onClick={() => setShowFeedback(false)} className="text-slate hover:text-off-white"><X size={18} /></button>
             </div>
             <textarea value={feedbackText} onChange={(e) => setFeedbackText(e.target.value)} placeholder="Descreva seu feedback..." className="w-full h-28 rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-sm text-off-white placeholder:text-slate focus:outline-none" />
-            <button type="button" onClick={() => { setFeedbackText(''); setShowFeedback(false); }} className="mt-4 w-full bg-[#1DB954] text-off-white rounded-xl py-2.5 text-sm font-semibold hover:brightness-110">
-              Enviar
-            </button>
+            <button type="button" onClick={() => { setFeedbackText(''); setShowFeedback(false); }} className="mt-4 w-full bg-[#1DB954] text-black rounded-xl py-2.5 text-sm font-semibold hover:brightness-110">Enviar</button>
           </div>
         </div>
       )}
@@ -510,14 +469,8 @@ const Chat = () => {
               <button type="button" onClick={() => setShowPreferences(false)} className="text-slate hover:text-off-white"><X size={18} /></button>
             </div>
             <div className="space-y-3">
-              <label className="flex items-center justify-between rounded-xl bg-white/5 px-3 py-3">
-                <span className="text-sm text-off-white">Habilitar áudio</span>
-                <input type="checkbox" checked={preferences.audioEnabled} onChange={(e) => setPreferences((prev) => ({ ...prev, audioEnabled: e.target.checked }))} />
-              </label>
-              <label className="flex items-center justify-between rounded-xl bg-white/5 px-3 py-3">
-                <span className="text-sm text-off-white">Modo compacto</span>
-                <input type="checkbox" checked={preferences.compactMode} onChange={(e) => setPreferences((prev) => ({ ...prev, compactMode: e.target.checked }))} />
-              </label>
+              <label className="flex items-center justify-between rounded-xl bg-white/5 px-3 py-3"><span className="text-sm text-off-white">Habilitar áudio</span><input type="checkbox" checked={preferences.audioEnabled} onChange={(e) => setPreferences((p) => ({ ...p, audioEnabled: e.target.checked }))} /></label>
+              <label className="flex items-center justify-between rounded-xl bg-white/5 px-3 py-3"><span className="text-sm text-off-white">Modo compacto</span><input type="checkbox" checked={preferences.compactMode} onChange={(e) => setPreferences((p) => ({ ...p, compactMode: e.target.checked }))} /></label>
             </div>
           </div>
         </div>

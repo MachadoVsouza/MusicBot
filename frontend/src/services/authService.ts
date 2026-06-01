@@ -1,3 +1,5 @@
+import { authFetch } from '@/contexts/AuthContext';
+
 const API_BASE = '/api';
 
 export interface UserProfile {
@@ -17,6 +19,7 @@ export interface RegisterResponse {
   success: boolean;
   error?: string;
   message?: string;
+  token?: string;
 }
 
 export function redirectToSpotifyAuth(): void {
@@ -25,14 +28,10 @@ export function redirectToSpotifyAuth(): void {
 
 export async function getAuthenticatedUser(): Promise<UserProfile | null> {
   try {
-    const res = await fetch(`${API_BASE}/spotify/profile`, {
-      credentials: 'include',
-    });
-
+    const res = await authFetch(`${API_BASE}/spotify/profile`);
     if (!res.ok) return null;
-
     const data = await res.json();
-
+    const profile = data.data ?? data;
     return {
       name: data.display_name ?? data.name ?? '',
       email: data.email ?? '',
@@ -50,33 +49,23 @@ export async function registerUser(data: RegisterData): Promise<RegisterResponse
   try {
     const res = await fetch(`${API_BASE}/auth/register`, {
       method: 'POST',
-      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-
     const body = await res.json();
-
     if (!res.ok) {
-      return {
-        success: false,
-        error: body.message || body.error || 'Erro ao criar conta',
-      };
+      return { success: false, error: body.message || body.error || 'Erro ao criar conta' };
     }
-
-    return { success: true };
+    return { success: true, token: body.data?.token || body.token };
   } catch (err) {
     console.error('Erro ao registrar usuário:', err);
-    return {
-      success: false,
-      error: 'Erro de conexão com o servidor',
-    };
+    return { success: false, error: 'Erro de conexão com o servidor' };
   }
 }
 
 export async function logout(): Promise<void> {
   try {
-    await fetch(`${API_BASE}/auth/logout`, { credentials: 'include' });
+    await fetch(`${API_BASE}/auth/logout`, { method: 'POST' });
   } catch (err) {
     console.error('Erro ao fazer logout:', err);
   }
@@ -92,32 +81,23 @@ export interface LoginResponse {
   error?: string;
   message?: string;
   usuario_id?: string;
+  token?: string;
 }
 
 export async function loginWithPassword(data: LoginData): Promise<LoginResponse> {
   try {
     const res = await fetch(`${API_BASE}/auth/login-custom`, {
       method: 'POST',
-      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-
     const body = await res.json();
-
     if (!res.ok) {
-      return {
-        success: false,
-        error: body.message || body.error || 'Erro ao fazer login',
-      };
+      return { success: false, error: body.message || body.error || 'Erro ao fazer login' };
     }
-
-    return { success: true, usuario_id: body.data?.usuario_id };
+    return { success: true, usuario_id: body.data?.usuario_id, token: body.data?.token || body.token };
   } catch (err) {
     console.error('Erro ao fazer login com senha:', err);
-    return {
-      success: false,
-      error: 'Erro de conexão com o servidor',
-    };
+    return { success: false, error: 'Erro de conexão com o servidor' };
   }
 }
