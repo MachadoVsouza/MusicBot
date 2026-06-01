@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { registerUser } from '@/services/authService';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth, authFetch } from '@/contexts/AuthContext';
 import AuthCard from '@/components/AuthCard';
 import MusicbotLogo from '@/components/MusicbotLogo';
 import { Loader2, AlertCircle } from 'lucide-react';
 
 const RegistrationForm = () => {
   const navigate = useNavigate();
-  const { loginWithProfile } = useAuth();
+  const { loginWithProfile, loginWithToken } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -64,10 +64,11 @@ const RegistrationForm = () => {
       });
 
       if (result.success) {
+        if (result.token) {
+          await loginWithToken(result.token);
+        }
         try {
-          const profileRes = await fetch('/api/spotify/profile', {
-            credentials: 'include',
-          });
+          const profileRes = await authFetch('/api/spotify/profile');
 
           if (profileRes.ok) {
             const profileData = await profileRes.json();
@@ -78,7 +79,7 @@ const RegistrationForm = () => {
               avatar: profile.images?.[0]?.url ?? '',
               plan: profile.product ?? 'free',
               followers: profile.followers?.total ?? 0,
-            });
+            }, result.token!);
           }
         } catch (profileError) {
           console.error('Erro ao buscar perfil:', profileError);
@@ -89,7 +90,7 @@ const RegistrationForm = () => {
             avatar: '',
             plan: 'free',
             followers: 0,
-          });
+          }, result.token!);
         }
         navigate('/chat', { replace: true });
       } else {

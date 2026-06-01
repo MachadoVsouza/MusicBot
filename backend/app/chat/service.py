@@ -11,8 +11,6 @@ SYSTEM_PROMPT_RAG = """Você é o MusicBot, um assistente musical inteligente.
 Responda APENAS com base no CONTEXTO abaixo.
 Se a informação não estiver no contexto, diga: "Não encontrei informações sobre isso na base de conhecimento."
 Não invente informações. Responda em português.
-Siga as seguintes diretrizes:
-- Evite frases de preenchimento
 
 CONTEXTO:
 {contexto}"""
@@ -20,7 +18,7 @@ CONTEXTO:
 INTENT_PATTERNS = re.compile(
     r"\b(toca|tocar|busca|buscar|procura|procurar|encontra|encontrar|ouvir|ouça|play|pesquisa|minhas|meus|favoritos|recentes|curtidas|curti|playlists|cria|adiciona|artista)\b",
     re.IGNORECASE
-)   
+)
 
 
 def _detectar_intencao_spotify(mensagem: str) -> bool:
@@ -56,8 +54,8 @@ class ChatService:
         if not chat:
             return None
 
-        historico = self.chat_repo.get_historico(chat_id)
-        pergunta  = self.chat_repo.salvar_pergunta(chat_id, mensagem)
+        historico  = self.chat_repo.get_historico(chat_id)
+        pergunta   = self.chat_repo.salvar_pergunta(chat_id, mensagem)
         historico.append({"role": "user", "content": mensagem})
 
         midia      = None
@@ -65,15 +63,12 @@ class ChatService:
         usou_agent = False
         fragmentos = []
 
-        # 1. Verifica se é intenção de busca no Spotify
         if token and _detectar_intencao_spotify(mensagem):
             resultado_agent   = run_agent(token, mensagem, historico)
             conteudo_resposta = resultado_agent["resposta"]
             midia             = resultado_agent.get("midia")
             usou_agent        = True
-
         else:
-            # 2. Busca contexto RAG
             fragmentos = self.rag_svc.buscar_contexto(mensagem, limite=3)
             usou_rag   = len(fragmentos) > 0
 
@@ -93,7 +88,6 @@ class ChatService:
 
         resposta = self.chat_repo.salvar_resposta(pergunta.id, conteudo_resposta, usou_rag)
 
-        # Salva fontes RAG depois de ter o ID da resposta
         if usou_rag and fragmentos and resposta:
             self.rag_svc.salvar_fontes(resposta.id, [f["fragmento_id"] for f in fragmentos])
 
@@ -109,11 +103,85 @@ class ChatService:
             "fontes":      fragmentos if usou_rag else [],
         }
 
-    def get_mensagens(self, spotify_id: str, chat_id: int) -> list[dict] | None:
+    def stream_mensagem(self, spotify_id: str, chat_id: int, mensagem: str, token: str = None) -> dict | None:
+        """
+        Versão streaming — retorna um gerador de chunks + metadados finais.
+        O blueprint consome o gerador via SSE.
+        """
         chat = self.chat_repo.get_chat(chat_id, spotify_id)
         if not chat:
             return None
 
+        historico  = self.chat_repo.get_historico(chat_id)
+        pergunta   = self.chat_repo.salvar_pergunta(chat_id, mensagem)
+        historico.append({"role": "user", "content": mensagem})
+
+        midia      = None
+        usou_rag   = False
+        fragmentos = []
+
+        # Agent não faz streaming por enquanto — cai no modo normal
+        if token and _detectar_intencao_spotify(mensagem):
+            resultado_agent   = run_agent(token, mensagem, historico)
+            conteudo_resposta = resultado_agent["resposta"]
+            midia             = resultado_agent.get("midia")
+
+            resposta = self.chat_repo.salvar_resposta(pergunta.id, conteudo_resposta, False)
+
+            # Simula stream para o frontend receber no mesmo formato
+            def _fake_stream():
+                yield conteudo_resposta
+
+            return {
+                "stream":      _fake_stream(),
+                "pergunta_id": pergunta.id,
+                "resposta_id": resposta.id,
+                "usou_rag":    False,
+                "midia":       midia,
+            }
+
+        # RAG
+        fragmentos = self.rag_svc.buscar_contexto(mensagem, limite=3)
+        usou_rag   = len(fragmentos) > 0
+
+        if usou_rag:
+            contexto      = "\n\n---\n\n".join(f["conteudo"][:300] for f in fragmentos)
+            system_prompt = SYSTEM_PROMPT_RAG.format(contexto=contexto)
+        else:
+            system_prompt = SYSTEM_PROMPT
+
+        chunks_gerados = []
+
+        def _stream_e_acumula():
+            for chunk in self.llm_repo.gerar_stream(historico, system_prompt):
+                chunks_gerados.append(chunk)
+                yield chunk
+
+        stream_gen = _stream_e_acumula()
+
+        # Salva resposta após o stream terminar — feito no blueprint após consumir o gerador
+        def _after_stream():
+            conteudo = "".join(chunks_gerados)
+            if not conteudo:
+                conteudo = "Desculpe, não consegui processar sua mensagem."
+            resposta = self.chat_repo.salvar_resposta(pergunta.id, conteudo, usou_rag)
+            if usou_rag and fragmentos and resposta:
+                self.rag_svc.salvar_fontes(resposta.id, [f["fragmento_id"] for f in fragmentos])
+            return resposta
+
+        return {
+            "stream":       stream_gen,
+            "after_stream": _after_stream,
+            "pergunta_id":  pergunta.id,
+            "usou_rag":     usou_rag,
+            "midia":        midia,
+            "fragmentos":   fragmentos,
+        }
+
+    def get_mensagens(self, spotify_id: str, chat_id: int) -> list[dict] | None:
+        chat = self.chat_repo.get_chat(chat_id, spotify_id)
+        if not chat:
+            return None
         mensagens = self.chat_repo.get_mensagens_completas(chat_id)
         return [
             {

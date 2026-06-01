@@ -43,9 +43,12 @@ const Entrar = () => {
     try {
       const result = await loginWithPassword({ email, password });
 
-      if (result.success) {
+      if (result.success && result.token) {
+        localStorage.setItem('musicbot_jwt', result.token);
+
         const profileRes = await fetch('/api/spotify/profile', {
           credentials: 'include',
+          headers: { Authorization: `Bearer ${result.token}` },
         });
 
         if (profileRes.ok) {
@@ -57,7 +60,7 @@ const Entrar = () => {
             avatar: profile.images?.[0]?.url ?? '',
             plan: profile.product ?? 'free',
             followers: profile.followers?.total ?? 0,
-          });
+          }, result.token);
         }
         navigate('/chat', { replace: true });
       } else {

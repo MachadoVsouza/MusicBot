@@ -14,4 +14,5 @@ wikipedia>=1.4.0
 faker
 dotenv 
 sentence-transformers>=5.0.0
-
+gunicorn
+flask-jwt-extended
