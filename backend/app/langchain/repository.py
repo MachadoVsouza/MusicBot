@@ -5,7 +5,7 @@ logger = logging.getLogger(__name__)
 
 
 class OllamaRepository:
-
+    #apagar depois
     def gerar_resposta(self, historico: list[dict], system_prompt: str = None) -> str | None:
         try:
             llm      = get_llm(stream=False)
