@@ -223,6 +223,8 @@ const Chat = () => {
               setMessages((prev) => prev.map((m) => m.id === botId ? { ...m, streaming: false, midia: json.midia ?? null } : m));
             }
           }
+
+          await Promise.resolve();
         }
       }
     } catch (e: unknown) {
@@ -266,7 +268,7 @@ const Chat = () => {
   };
 
   // ── Export ──────────────────────────────────────────────────────────────────
-  const handleExport = async (format: 'txt' | 'json' | 'md') => {
+  const handleExport = async (format: 'txt' | 'json' | 'md' | 'pdf') => {
     if (!currentConversationId) return;
     setShowExportMenu(false);
     const res = await authFetch(`${API}/chat/${currentConversationId}/export?format=${format}`);
@@ -391,7 +393,7 @@ const Chat = () => {
               {showExportMenu && (
                 <div className="absolute left-0 bottom-11 bg-[#282828] border border-[#3E3E3E] rounded-xl p-2 w-48 z-20">
                   <p className="text-xs text-slate px-2 py-1 mb-1">Exportar conversa</p>
-                  {(['txt', 'json', 'md'] as const).map((fmt) => (
+                  {(['txt', 'json', 'md', 'pdf'] as const).map((fmt) => (
                     <button key={fmt} type="button" onClick={() => handleExport(fmt)} className="w-full text-left px-2 py-2 rounded-lg text-off-white text-sm hover:bg-[#3E3E3E] transition-colors">
                       Exportar como {fmt.toUpperCase()}
                     </button>
