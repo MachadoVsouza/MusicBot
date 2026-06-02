@@ -35,7 +35,7 @@ services:
               count: 1
               capabilities: [gpu]
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:11434/api/tags > /dev/null 2>&1 || exit 1"]
+      test: ["CMD", "ollama", "list"]
       interval: 10s
       timeout: 20s
       retries: 10
