@@ -13,7 +13,7 @@ class OllamaRepository:
             response = llm.invoke(messages)
             return response.content
         except Exception as e:
-            logger.error("Erro ao chamar LLM: %s", e)
+            logger.exception("Erro ao chamar LLM na geração normal")
             return None
 
     def gerar_stream(self, historico: list[dict], system_prompt: str = None):
@@ -28,5 +28,4 @@ class OllamaRepository:
                 if chunk.content:
                     yield chunk.content
         except Exception as e:
-            logger.error("Erro no stream da LLM: %s", e)
-            yield ""
+            logger.exception("Erro durante o stream da LLM")

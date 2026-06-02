@@ -6,9 +6,13 @@ from flask import current_app
 
 def get_llm(stream: bool = False) -> BaseChatModel:
     return ChatOllama(
-        base_url  = current_app.config["OLLAMA_BASE_URL"],
-        model     = current_app.config["OLLAMA_MODEL"],
-        streaming = stream,
+        base_url    = current_app.config["OLLAMA_BASE_URL"],
+        model       = current_app.config["OLLAMA_MODEL"],
+        streaming   = stream,
+        num_predict = 2048,
+        temperature = 0.7,
+        keep_alive  = "30m",
+        timeout     = 120.0,
     )
 
 

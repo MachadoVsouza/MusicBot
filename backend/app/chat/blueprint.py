@@ -118,21 +118,34 @@ def stream_mensagem(token: str, usuario_id: str, chat_id: int):
     def generate():
         resultado = _svc().stream_mensagem(usuario_id, chat_id, mensagem, token=token)
         if resultado is None:
-            yield f"data: {json.dumps({'erro': 'Chat não encontrado'})}\n\n"
+            yield f"data: {json.dumps({'erro': 'Chat não encontrado', 'done': True})}\n\n"
             return
 
-        for chunk in resultado["stream"]:
-            yield f"data: {json.dumps({'chunk': chunk})}\n\n"
+        try:
+            for chunk in resultado["stream"]:
+                yield f"data: {json.dumps({'chunk': chunk})}\n\n"
+        except Exception as e:
+            import logging
+            logging.error(f"Erro durante stream: {e}")
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
 
-        # Evento final com metadados
-        yield f"data: {json.dumps({'done': True, 'resposta_id': resultado['resposta_id'], 'pergunta_id': resultado['pergunta_id'], 'usou_rag': resultado['usou_rag'], 'midia': resultado['midia']})}\n\n"
+        resposta_id = resultado.get("resposta_id")
+        try:
+            if "after_stream" in resultado:
+                resposta = resultado["after_stream"]()
+                resposta_id = resposta.id if resposta else resposta_id
+        except Exception as e:
+            import logging
+            logging.error(f"Erro ao salvar resposta no after_stream: {e}")
+
+        yield f"data: {json.dumps({'done': True, 'resposta_id': resposta_id, 'pergunta_id': resultado.get('pergunta_id'), 'usou_rag': resultado.get('usou_rag'), 'midia': resultado.get('midia')})}\n\n"
 
     return Response(
         stream_with_context(generate()),
         mimetype="text/event-stream",
         headers={
             "Cache-Control":      "no-cache",
-            "X-Accel-Buffering":  "no",  # desativa buffer do Nginx
+            "X-Accel-Buffering":  "no",
         },
     )
 
@@ -144,7 +157,7 @@ def stream_mensagem(token: str, usuario_id: str, chat_id: int):
 def exportar_chat(token: str, usuario_id: str, chat_id: int):
     """
     Exporta o histórico do chat.
-    ?format=txt | json | md (padrão: txt)
+    ?format=txt | json | md | pdf (padrão: txt)
     """
     fmt       = request.args.get("format", "txt").lower()
     mensagens = _svc().get_mensagens(usuario_id, chat_id)
@@ -164,6 +177,10 @@ def exportar_chat(token: str, usuario_id: str, chat_id: int):
         content  = "\n---\n".join(lines)
         mimetype = "text/markdown"
         filename = f"chat_{chat_id}.md"
+    elif fmt == "pdf":
+        content  = _gerar_pdf(chat_id, mensagens)
+        mimetype = "application/pdf"
+        filename = f"chat_{chat_id}.pdf"
     else:  # txt
         lines = []
         for m in mensagens:
@@ -223,6 +240,65 @@ def _extrair_imagem(data: bytes, ext: str) -> str:
     return "[Imagem recebida — modelo atual não suporta visão]"
 
 
+def _gerar_pdf(chat_id: int, mensagens: list[dict]) -> bytes:
+    try:
+        import io
+        from reportlab.lib.pagesizes import letter, A4
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.units import inch
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak
+        from reportlab.lib.enums import TA_LEFT, TA_JUSTIFY
+
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=0.5*inch, bottomMargin=0.5*inch)
+
+        styles = getSampleStyleSheet()
+        user_style = ParagraphStyle(
+            'UserMessage',
+            parent=styles['Normal'],
+            textColor='#0066cc',
+            fontSize=11,
+            spaceAfter=12,
+            leftIndent=20,
+        )
+        bot_style = ParagraphStyle(
+            'BotMessage',
+            parent=styles['Normal'],
+            textColor='#333333',
+            fontSize=10,
+            spaceAfter=12,
+            leftIndent=20,
+        )
+
+        elements = []
+        title = Paragraph(f"<b>Chat #{chat_id}</b>", styles['Heading1'])
+        elements.append(title)
+        elements.append(Spacer(1, 0.3*inch))
+
+        for msg in mensagens:
+            role = msg['role']
+            timestamp = msg['timestamp']
+            content = msg['content']
+
+            label = "📌 Você" if role == "user" else "🤖 MusicBot"
+            header = Paragraph(f"<b>{label}</b> <font size=8>({timestamp})</font>",
+                             user_style if role == "user" else bot_style)
+            elements.append(header)
+
+            para = Paragraph(content, user_style if role == "user" else bot_style)
+            elements.append(para)
+            elements.append(Spacer(1, 0.2*inch))
+
+        doc.build(elements)
+        buffer.seek(0)
+        return buffer.getvalue()
+    except Exception as e:
+        return f"Erro ao gerar PDF: {str(e)}".encode()
+
+
+
+
+
 # Nota: a rota /stream precisa ser atualizada para chamar after_stream
 # após consumir o gerador. Substitui a função generate() na rota stream por:
 #
@@ -243,3 +319,4 @@ def _extrair_imagem(data: bytes, ext: str) -> str:
 #         resposta_id = resultado.get("resposta_id")
 #
 #     yield f"data: {json.dumps({'done': True, 'resposta_id': resposta_id, ...})}\n\n"
+
