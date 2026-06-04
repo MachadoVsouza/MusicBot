@@ -1,9 +1,12 @@
+import logging
 from datetime import datetime, timezone
 from app.database.connection import get_session
 from app.database.models import Documento, Fragmento, RespostaFonte, DocumentoStatus
-from .client import get_embedding
+from .client import get_embedding, get_embeddings_batch
 
-SIMILARITY_THRESHOLD = 0.15  # distância coseno — abaixo disso considera duplicata
+logger = logging.getLogger(__name__)
+
+SIMILARITY_THRESHOLD = 0.15
 
 
 class RagRepository:
@@ -18,7 +21,6 @@ class RagRepository:
         tipo: str,
         uploaded_by: str,
     ) -> Documento:
-        """Salva o documento com status PENDENTE — aguarda aprovação do moderador."""
         db = get_session()
         try:
             doc = Documento(
@@ -37,13 +39,12 @@ class RagRepository:
             db.close()
 
     def aprovar_documento(self, documento_id: int, aprovado_por: str) -> Documento | None:
-        """Marca o documento como aprovado e registra quem aprovou e quando."""
         db = get_session()
         try:
             doc = db.get(Documento, documento_id)
             if not doc:
                 return None
-            doc.status      = DocumentoStatus.aprovado
+            doc.status       = DocumentoStatus.aprovado
             doc.aprovado_por = aprovado_por
             doc.aprovado_em  = datetime.now(timezone.utc)
             db.commit()
@@ -53,7 +54,6 @@ class RagRepository:
             db.close()
 
     def rejeitar_documento(self, documento_id: int, aprovado_por: str, motivo: str) -> Documento | None:
-        """Marca o documento como rejeitado, registra quem rejeitou e o motivo."""
         db = get_session()
         try:
             doc = db.get(Documento, documento_id)
@@ -97,65 +97,81 @@ class RagRepository:
         embedding = get_embedding(conteudo)
         if not embedding:
             return False
-
         db = get_session()
         try:
             from sqlalchemy import text
             result = db.execute(
-                text("SELECT embedding <=> :emb AS distancia FROM fragmento WHERE embedding IS NOT NULL ORDER BY distancia LIMIT 1"),
+                text("""
+                    SELECT embedding <=> :emb AS distancia
+                    FROM fragmento
+                    WHERE embedding IS NOT NULL
+                    ORDER BY distancia
+                    LIMIT 1
+                """),
                 {"emb": str(embedding)}
             ).first()
-
-            if not result:
-                return False
-
-            return result.distancia < SIMILARITY_THRESHOLD
+            return bool(result and result.distancia < SIMILARITY_THRESHOLD)
         finally:
             db.close()
 
-    def salvar_fragmento(self, documento_id: int, conteudo: str) -> Fragmento | None:
-        """Gera o embedding do chunk e salva no banco."""
-        embedding = get_embedding(conteudo)
-        if not embedding:
-            return None
+    def salvar_fragmentos_batch(self, documento_id: int, chunks: list[str]) -> tuple[int, int]:
+        """Salva múltiplos chunks em batch — muito mais eficiente que um por um."""
+        embeddings = get_embeddings_batch(chunks)
+        if not embeddings:
+            return 0, len(chunks)
 
         db = get_session()
+        indexados = 0
+        falhos    = 0
         try:
-            fragmento = Fragmento(
-                documento_id = documento_id,
-                conteudo     = conteudo,
-                embedding    = embedding,
-            )
-            db.add(fragmento)
+            for chunk, embedding in zip(chunks, embeddings):
+                try:
+                    db.add(Fragmento(
+                        documento_id = documento_id,
+                        conteudo     = chunk,
+                        embedding    = embedding,
+                    ))
+                    indexados += 1
+                except Exception:
+                    logger.exception("Erro ao salvar fragmento")
+                    falhos += 1
             db.commit()
-            db.refresh(fragmento)
-            return fragmento
+        except Exception:
+            db.rollback()
+            logger.exception("Erro no batch de fragmentos")
         finally:
             db.close()
+        return indexados, falhos
 
-    def buscar_similares(self, pergunta: str, limite: int = 3) -> list[Fragmento]:
+    def buscar_similares(self, pergunta: str, limite: int = 5) -> list[Fragmento]:
         embedding = get_embedding(pergunta)
         if not embedding:
             return []
-
         db = get_session()
         try:
             from sqlalchemy import text
-            ids = db.execute(
+            rows = db.execute(
                 text("""
-                SELECT f.id FROM fragmento f
-                JOIN documento d ON d.id = f.documento_id
-                WHERE f.embedding IS NOT NULL
-                  AND d.status = :status
-                  AND d.ativo = :ativo
-                ORDER BY f.embedding <=> :emb
-                LIMIT :limite
-            """),
-                {"emb": str(embedding), "status": "aprovado", "ativo": True, "limite": limite}
+                    SELECT f.id, f.embedding <=> :emb AS distancia
+                    FROM fragmento f
+                    JOIN documento d ON d.id = f.documento_id
+                    WHERE f.embedding IS NOT NULL
+                      AND d.status = 'aprovado'
+                      AND d.ativo  = TRUE
+                    ORDER BY distancia
+                    LIMIT :limite
+                """),
+                {"emb": str(embedding), "limite": limite}
             ).fetchall()
 
-            fragmento_ids = [row.id for row in ids]
-            return db.query(Fragmento).filter(Fragmento.id.in_(fragmento_ids)).all()
+            ids = [r.id for r in rows]
+            if not ids:
+                return []
+
+            fragmentos = db.query(Fragmento).filter(Fragmento.id.in_(ids)).all()
+            # Reordena pelo ranking original da busca vetorial
+            ordem = {fid: i for i, fid in enumerate(ids)}
+            return sorted(fragmentos, key=lambda f: ordem.get(f.id, 999))
         finally:
             db.close()
 

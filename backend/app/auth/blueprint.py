@@ -67,8 +67,8 @@ def register():
     if not result.get("success"):
         return error(result.get("message", "Erro ao criar conta"), 400, result.get("code", "registration_failed"))
 
-    jwt = create_access_token(identity=result["usuario_id"])
-    return success({"token": jwt, "usuario_id": result["usuario_id"]}, 201)
+    jwt = create_access_token(identity=result["spotify_id"])
+    return success({"token": jwt, "spotify_id": result["spotify_id"]}, 201)
 
 
 @auth_bp.post("/login-custom")
@@ -86,8 +86,8 @@ def login_custom():
     if not result.get("success"):
         return unauthorized(result.get("message", "Credenciais inválidas"))
 
-    jwt = create_access_token(identity=result["usuario_id"])
-    return success({"token": jwt, "usuario_id": result["usuario_id"]})
+    jwt = create_access_token(identity=result["spotify_id"])
+    return success({"token": jwt, "spotify_id": result["spotify_id"]})
 
 
 @auth_bp.post("/set-password")
