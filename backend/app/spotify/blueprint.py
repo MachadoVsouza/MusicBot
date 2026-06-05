@@ -4,7 +4,7 @@ from .repository import SpotifyRepository
 from app.core.auth_guard import require_auth
 from app.core.http import success, not_found, error
 
-spotify_bp = Blueprint("spotify", __name__)
+spotify_bp = Blueprint("spotify", __name__, url_prefix="/spotify")
 
 
 def _service(token: str) -> SpotifyService:
