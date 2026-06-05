@@ -136,6 +136,69 @@ def make_spotify_tools(token: str):
         }
 
     @tool
+    def tocar_musica(query: str, device_id: str | None = None) -> dict:
+        """
+        Toca uma música no Spotify em tempo real.
+        Use quando o usuário pedir para tocar, ouvir, dar play em uma música específica.
+        Exemplos: 'toca Creep do Radiohead', 'quero ouvir Bohemian Rhapsody'
+        Primeiro busca a música, depois inicia o playback no dispositivo Spotify do usuário.
+        Se device_id não for informado, usa o dispositivo ativo.
+        """
+        track = svc.search_track(query)
+        if not track:
+            return {"erro": f"Música '{query}' não encontrada."}
+        return svc.play_track(track["uri"], device_id)
+
+    @tool
+    def tocar_playlist(playlist_id: str, device_id: str | None = None) -> dict:
+        """
+        Toca uma playlist inteira no Spotify.
+        Use quando o usuário pedir para tocar uma playlist específica.
+        O playlist_id pode ser obtido com listar_playlists.
+        """
+        return svc.play_context(f"spotify:playlist:{playlist_id}", device_id)
+
+    @tool
+    def pausar_musica(device_id: str | None = None) -> dict:
+        """
+        Pausa a música que está tocando no Spotify.
+        Use quando o usuário pedir para pausar, parar a música.
+        """
+        return svc.pause(device_id)
+
+    @tool
+    def proxima_faixa(device_id: str | None = None) -> dict:
+        """
+        Pula para a próxima faixa no Spotify.
+        Use quando o usuário pedir para pular, avançar, próxima música.
+        """
+        return svc.next(device_id)
+
+    @tool
+    def faixa_anterior(device_id: str | None = None) -> dict:
+        """
+        Volta para a faixa anterior no Spotify.
+        Use quando o usuário pedir para voltar, música anterior.
+        """
+        return svc.previous(device_id)
+
+    @tool
+    def listar_dispositivos() -> dict:
+        """
+        Lista os dispositivos disponíveis para playback no Spotify.
+        Use quando o usuário perguntar onde está tocando, ou se não encontrar dispositivo ativo.
+        """
+        devices = svc.get_devices()
+        if not devices:
+            return {"erro": "Nenhum dispositivo encontrado. Abra o Spotify em algum dispositivo."}
+        return {
+            "dispositivos": [
+                {"id": d["id"], "nome": d["name"], "tipo": d["type"], "ativo": d.get("is_active", False)}
+                for d in devices
+            ]
+        }
+
+    @tool
     def buscar_artista(nome: str) -> dict:
         """
         Busca informações sobre um artista no Spotify: bio, gêneros, popularidade e músicas populares.
@@ -187,4 +250,10 @@ def make_spotify_tools(token: str):
         criar_playlist,
         adicionar_musica_playlist,
         buscar_artista,
+        tocar_musica,
+        tocar_playlist,
+        pausar_musica,
+        proxima_faixa,
+        faixa_anterior,
+        listar_dispositivos,
     ]

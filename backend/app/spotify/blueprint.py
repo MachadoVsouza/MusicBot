@@ -91,3 +91,59 @@ def add_tracks(token: str, usuario_id: str, playlist_id: str):
 
     _service(token).add_tracks_to_playlist(playlist_id, track_uris)
     return success({"ok": True})
+
+
+# ── Playback ────────────────────────────────────────────────────────────────────
+
+@spotify_bp.get("/devices")
+@require_auth
+def get_devices(token: str, usuario_id: str):
+    """Lista dispositivos Spotify disponíveis."""
+    return success({"devices": _service(token).get_devices()})
+
+
+@spotify_bp.get("/playback")
+@require_auth
+def get_playback(token: str, usuario_id: str):
+    """Estado atual do playback."""
+    return success(_service(token).get_current_playback_state())
+
+
+@spotify_bp.post("/play")
+@require_auth
+def play_track(token: str, usuario_id: str):
+    """Toca uma música ou contexto."""
+    body = request.get_json(silent=True) or {}
+    track_uri    = body.get("track_uri")
+    context_uri  = body.get("context_uri")
+    device_id    = body.get("device_id")
+
+    svc = _service(token)
+
+    if context_uri:
+        return success(svc.play_context(context_uri, device_id))
+    elif track_uri:
+        return success(svc.play_track(track_uri, device_id))
+    else:
+        return error("Envie 'track_uri' ou 'context_uri'", 400)
+
+
+@spotify_bp.post("/pause")
+@require_auth
+def pause_playback(token: str, usuario_id: str):
+    body = request.get_json(silent=True) or {}
+    return success(_service(token).pause(body.get("device_id")))
+
+
+@spotify_bp.post("/next")
+@require_auth
+def next_track(token: str, usuario_id: str):
+    body = request.get_json(silent=True) or {}
+    return success(_service(token).next(body.get("device_id")))
+
+
+@spotify_bp.post("/previous")
+@require_auth
+def previous_track(token: str, usuario_id: str):
+    body = request.get_json(silent=True) or {}
+    return success(_service(token).previous(body.get("device_id")))

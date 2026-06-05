@@ -6,8 +6,16 @@
 - [x] Qualidade LLM ajustada (num_predict, temperature, keep_alive, prompts)
 - [x] LangChain Agents com Spotify real e parsing de erros
 - [x] RAG com lazy loading, batch embeddings, vector ranking, chunking via LangChain
+- [x] **Streaming do agent** — implementado via `run_agent_stream()` com `AgentExecutor.stream()`
+- [x] **Playback real implementado** — Spotify `player/play` via API REST
+  - [x] Novos scopes de playback no config.py
+  - [x] Métodos no `SpotifyRepository` (devices, play, pause, next, previous, seek, shuffle, repeat)
+  - [x] Métodos no `SpotifyService`
+  - [x] Rotas na API (`GET /devices`, `GET /playback`, `POST /play`, `POST /pause`, `POST /next`, `POST /previous`)
+  - [x] 6 novas tools no agente (`tocar_musica`, `tocar_playlist`, `pausar_musica`, `proxima_faixa`, `faixa_anterior`, `listar_dispositivos`)
+- [ ] **ARRUMAR** — Streaming do chat (pode estar quebrado ainda)
+- [ ] **PRÓXIMA SESSÃO** — Prune do modelo Ollama ou conectar com servidor do IFES
 - [ ] **Cloudflare Tunnel** — link público temporário para compartilhar o projeto
 - [ ] **MCP Server** — expor tools do Spotify como MCP para Claude Desktop/Insomnia
 - [ ] **RAG com síntese** — RetrievalQA do LangChain em vez de chunks crus no prompt
 - [ ] **Memory do LangChain** — substituir histórico manual por RunnableWithMessageHistory
-- [ ] **Streaming do agent** — hoje cai no modo normal (fake stream), implementar stream real

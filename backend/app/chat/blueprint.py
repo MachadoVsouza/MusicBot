@@ -130,15 +130,22 @@ def stream_mensagem(token: str, usuario_id: str, chat_id: int):
             yield f"data: {json.dumps({'error': str(e)})}\n\n"
 
         resposta_id = resultado.get("resposta_id")
+        midia       = resultado.get("midia")
         try:
             if "after_stream" in resultado:
-                resposta = resultado["after_stream"]()
-                resposta_id = resposta.id if resposta else resposta_id
+                after_result = resultado["after_stream"]()
+                # after_stream do agent retorna (resposta, midia)
+                # after_stream do RAG retorna apenas resposta
+                if isinstance(after_result, tuple):
+                    resposta_obj, midia = after_result
+                else:
+                    resposta_obj = after_result
+                resposta_id = resposta_obj.id if resposta_obj else resposta_id
         except Exception as e:
             import logging
             logging.error(f"Erro ao salvar resposta no after_stream: {e}")
 
-        yield f"data: {json.dumps({'done': True, 'resposta_id': resposta_id, 'pergunta_id': resultado.get('pergunta_id'), 'usou_rag': resultado.get('usou_rag'), 'midia': resultado.get('midia')})}\n\n"
+        yield f"data: {json.dumps({'done': True, 'resposta_id': resposta_id, 'pergunta_id': resultado.get('pergunta_id'), 'usou_rag': resultado.get('usou_rag'), 'midia': midia})}\n\n"
 
     return Response(
         stream_with_context(generate()),

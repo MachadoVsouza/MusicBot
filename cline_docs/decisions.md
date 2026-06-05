@@ -43,3 +43,9 @@
 - Suporte a documentos: texto, PDF, URLs
 - Fluxo de aprovação: pendente → aprovado/rejeitado com indexação sob demanda
 - Verificação de duplicata via similaridade vetorial (threshold 0.15)
+
+## Playback / Preview de Áudio
+- Spotify **não retorna mais `preview_url` para a maioria das tracks** (deprecated desde 2024)
+- Para fazer playback real é necessário **Spotify Web Playback SDK** (Premium) no frontend
+- A SDK requer scopes extras: `user-modify-playback-state`, `user-read-playback-state`
+- Alternativa futura: criar um **Agente de Playback** que usa o SDK no frontend para controlar dispositivos Spotify do usuário

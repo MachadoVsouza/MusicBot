@@ -39,3 +39,94 @@ class SpotifyRepository:
 
     def add_tracks_to_playlist(self, playlist_id: str, track_uris: list[str]) -> None:
         self._sp.playlist_add_items(playlist_id, track_uris)
+
+    # ── Playback ──────────────────────────────────────────────────────────────
+
+    def get_available_devices(self) -> list[dict]:
+        """Retorna dispositivos disponíveis para playback."""
+        devices = self._sp.devices()
+        return devices.get("devices", [])
+
+    def start_playback(
+        self,
+        device_id: str | None = None,
+        uris: list[str] | None = None,
+        context_uri: str | None = None,
+        offset: dict | None = None,
+        position_ms: int = 0,
+    ) -> bool:
+        """
+        Inicia playback em um dispositivo.
+        - device_id: None = usa o dispositivo ativo
+        - uris: lista de tracks URIs para tocar
+        - context_uri: URI de playlist/album/artist
+        """
+        try:
+            self._sp.start_playback(
+                device_id=device_id,
+                uris=uris,
+                context_uri=context_uri,
+                offset=offset,
+                position_ms=position_ms,
+            )
+            return True
+        except spotipy.SpotifyException as e:
+            if e.http_status == 404:
+                # Nenhum dispositivo ativo
+                return False
+            raise
+
+    def pause_playback(self, device_id: str | None = None) -> bool:
+        """Pausa o playback."""
+        try:
+            self._sp.pause_playback(device_id=device_id)
+            return True
+        except spotipy.SpotifyException:
+            return False
+
+    def next_track(self, device_id: str | None = None) -> bool:
+        """Próxima faixa."""
+        try:
+            self._sp.next_track(device_id=device_id)
+            return True
+        except spotipy.SpotifyException:
+            return False
+
+    def previous_track(self, device_id: str | None = None) -> bool:
+        """Faixa anterior."""
+        try:
+            self._sp.previous_track(device_id=device_id)
+            return True
+        except spotipy.SpotifyException:
+            return False
+
+    def get_current_playback(self) -> dict | None:
+        """Retorna o estado atual do playback."""
+        try:
+            return self._sp.current_playback()
+        except spotipy.SpotifyException:
+            return None
+
+    def seek_track(self, position_ms: int, device_id: str | None = None) -> bool:
+        """Pula para uma posição na faixa atual."""
+        try:
+            self._sp.seek_track(position_ms, device_id=device_id)
+            return True
+        except spotipy.SpotifyException:
+            return False
+
+    def shuffle(self, state: bool, device_id: str | None = None) -> bool:
+        """Ativa/desativa shuffle."""
+        try:
+            self._sp.shuffle(state, device_id=device_id)
+            return True
+        except spotipy.SpotifyException:
+            return False
+
+    def repeat(self, state: str, device_id: str | None = None) -> bool:
+        """Define modo de repetição: 'track', 'context' ou 'off'."""
+        try:
+            self._sp.repeat(state, device_id=device_id)
+            return True
+        except spotipy.SpotifyException:
+            return False
