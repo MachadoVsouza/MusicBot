@@ -1,47 +1,45 @@
+"""
+Client de embeddings usando a API do próprio Ollama (/api/embeddings).
+Substitui SentenceTransformers para evitar OOM (modelo ~600MB desnecessário).
+"""
 import os
 import logging
-from threading import Lock
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
-EMBEDDING_MODEL = "google/embeddinggemma-300m"
-
-_embedder = None
-_lock     = Lock()
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://ollama:11434")
+EMBEDDING_MODEL = os.getenv("OLLAMA_EMBEDDING_MODEL", "gemma4:e4b")
 
 
-def get_embedder():
-    """Lazy loading — carrega o modelo só na primeira chamada."""
-    global _embedder
-    if _embedder is not None:
-        return _embedder
-    with _lock:
-        if _embedder is not None:
-            return _embedder
-        try:
-            from sentence_transformers import SentenceTransformer
-            from huggingface_hub import login
-            token = os.getenv("HUGGINGFACE_TOKEN")
-            if token:
-                login(token=token)
-            logger.info("Carregando modelo de embeddings: %s", EMBEDDING_MODEL)
-            _embedder = SentenceTransformer(EMBEDDING_MODEL)
-            logger.info("Modelo de embeddings carregado.")
-        except Exception:
-            logger.exception("Erro ao carregar modelo de embeddings")
-            return None
-    return _embedder
-
-def get_embeddings_batch(texts: list[str]) -> list[list[float]] | None:
-    embedder = get_embedder()
-    if not embedder:
-        return None
+def _get_ollama_embedding(text: str) -> Optional[list[float]]:
+    """Chama /api/embeddings do Ollama para uma única string."""
+    import requests
     try:
-        return embedder.encode(texts, normalize_embeddings=True, batch_size=32).tolist()
+        resp = requests.post(
+            f"{OLLAMA_BASE_URL}/api/embeddings",
+            json={"model": EMBEDDING_MODEL, "prompt": text},
+            timeout=30,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        return data.get("embedding")
     except Exception:
-        logger.exception("Erro ao gerar embeddings em batch")
+        logger.exception("Erro ao gerar embedding via Ollama")
         return None
 
-def get_embedding(text: str) -> list[float] | None:
-    result = get_embeddings_batch([text])
-    return result[0] if result else None
+
+def get_embedding(text: str) -> Optional[list[float]]:
+    """Gera embedding para um texto."""
+    return _get_ollama_embedding(text)
+
+
+def get_embeddings_batch(texts: list[str]) -> Optional[list[list[float]]]:
+    """Gera embeddings para uma lista de textos (chamada individual por ora)."""
+    results = []
+    for t in texts:
+        emb = _get_ollama_embedding(t)
+        if emb is None:
+            return None
+        results.append(emb)
+    return results

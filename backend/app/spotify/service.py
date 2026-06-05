@@ -32,7 +32,7 @@ class SpotifyService:
                 "total": item.get("tracks", {}).get("total", 0) if item.get("tracks") else 0,
             }
             for item in results["items"]
-            if item  # algumas playlists podem vir como None
+            if item
         ]
         
     # ── Histórico ─────────────────────────────────────────────────────────────
@@ -80,11 +80,9 @@ class SpotifyService:
     # ── Busca de track ────────────────────────────────────────────────────────
 
     def search_track(self, query: str) -> dict | None:
-        """Retorna dados formatados da primeira track encontrada."""
         tracks = self.repo.search_track(query, limit=1)
         if not tracks:
             return None
-
         track = tracks[0]
         return {
             "id":            track["id"],
@@ -97,6 +95,24 @@ class SpotifyService:
             "popularity":    track.get("popularity", 0),
             "preview_url":   track.get("preview_url"),
             "external_urls": track["external_urls"],
+        }
+
+    # ── Artista ───────────────────────────────────────────────────────────────
+
+    def get_artist_info(self, nome: str) -> dict | None:
+        """Busca informações de um artista via Spotipy."""
+        artista = self.repo.search_artist(nome)
+        if not artista:
+            return None
+        top_tracks = self.repo.get_artist_top_tracks(artista["id"])
+        return {
+            "nome":         artista["name"],
+            "generos":      artista.get("genres", []),
+            "popularidade": artista.get("popularity"),
+            "seguidores":   artista["followers"]["total"],
+            "top_musicas":  [t["name"] for t in top_tracks[:5]],
+            "url":          artista["external_urls"].get("spotify"),
+            "uri":          artista["uri"],
         }
 
     # ── Playlists (write) ─────────────────────────────────────────────────────
@@ -113,21 +129,25 @@ class SpotifyService:
         self.repo.add_tracks_to_playlist(playlist_id, track_uris)
         return True
 
+    def create_playlist_with_tracks(self, name: str, description: str, track_uris: list[str]) -> dict:
+        """Cria uma playlist e adiciona tracks."""
+        result = self.create_playlist(name, description)
+        if result.get("id"):
+            self.add_tracks_to_playlist(result["id"], track_uris)
+        return result
+
     # ── Playback ──────────────────────────────────────────────────────────────
 
     def get_devices(self) -> list[dict]:
-        """Retorna dispositivos disponíveis para playback."""
         return self.repo.get_available_devices()
 
     def play_track(self, track_uri: str, device_id: str | None = None) -> dict:
-        """Toca uma música específica no Spotify."""
         success = self.repo.start_playback(device_id=device_id, uris=[track_uri])
         if not success:
             return {"erro": "Nenhum dispositivo ativo encontrado. Abra o Spotify em algum dispositivo primeiro."}
         return {"ok": True, "mensagem": "Música tocando no seu Spotify!"}
 
     def play_context(self, context_uri: str, device_id: str | None = None) -> dict:
-        """Toca um contexto (playlist, album, artista) no Spotify."""
         success = self.repo.start_playback(device_id=device_id, context_uri=context_uri)
         if not success:
             return {"erro": "Nenhum dispositivo ativo encontrado."}
@@ -145,8 +165,23 @@ class SpotifyService:
         success = self.repo.previous_track(device_id)
         return {"ok": success, "mensagem": "Faixa anterior." if success else "Não foi possível voltar."}
 
+    def transfer_to_device(self, device_id: str) -> dict:
+        """Transfere o playback para um dispositivo específico."""
+        success = self.repo.transfer_playback(device_id)
+        if not success:
+            return {"erro": "Não foi possível transferir o playback para este dispositivo."}
+        devices = self.get_devices()
+        nome = next((d["name"] for d in devices if d["id"] == device_id), "dispositivo selecionado")
+        return {"ok": True, "mensagem": f"Playback transferido para {nome}!"}
+
+    def add_to_queue(self, track_uri: str, device_id: str | None = None) -> dict:
+        """Adiciona uma música na fila de playback."""
+        success = self.repo.add_to_queue(track_uri, device_id)
+        if not success:
+            return {"erro": "Nenhum dispositivo ativo. Abra o Spotify em algum dispositivo."}
+        return {"ok": True, "mensagem": "Música adicionada à fila!"}
+
     def get_current_playback_state(self) -> dict | None:
-        """Retorna o estado atual do playback: faixa, progresso, dispositivo."""
         playback = self.repo.get_current_playback()
         if not playback:
             return {"playing": False, "device": None, "track": None}

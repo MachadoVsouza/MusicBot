@@ -1,7 +1,7 @@
 import re
 import logging
 import requests
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from .repository import RagRepository
 
 logger = logging.getLogger(__name__)

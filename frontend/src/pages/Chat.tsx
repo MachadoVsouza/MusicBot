@@ -14,7 +14,7 @@ type ConversationRating = 'positive' | 'negative' | null;
 
 interface Source { name: string; category: string; origin: string; date: string; version: string; excerpt: string; }
 interface Midia { tipo: string; preview_url: string; nome: string; artista: string; url: string; }
-interface Message { id: string; role: MessageRole; content: string; timestamp: string; sources?: Source[]; midia?: Midia | null; streaming?: boolean; }
+interface Message { id: string; role: MessageRole; content: string; timestamp: string; sources?: Source[]; midia?: Midia | null; streaming?: boolean; respostaId?: number; }
 interface Conversation { id: string; title: string; updatedAt: string; messages: Message[]; }
 interface ChatApiResponse { id: string | number; titulo: string; updated_at: string; }
 
@@ -246,7 +246,7 @@ const Chat = () => {
               setMessages((prev) => prev.map((m) => m.id === botId ? { ...m, content: m.content + json.chunk } : m));
             }
             if (json.done) {
-              setMessages((prev) => prev.map((m) => m.id === botId ? { ...m, streaming: false, midia: json.midia ?? null } : m));
+              setMessages((prev) => prev.map((m) => m.id === botId ? { ...m, streaming: false, midia: json.midia ?? null, respostaId: json.resposta_id } : m));
             }
           }
 
@@ -291,6 +291,27 @@ const Chat = () => {
   const handleSelectConversation = async (id: string) => {
     setShowHistory(false);
     await loadConversationMessages(id);
+  };
+
+  // ── Feedback ──────────────────────────────────────────────────────────────────
+  const sendFeedback = async (tipo: 'like' | 'dislike' | 'report', comentario: string = '') => {
+    // Pega a última mensagem do bot que tenha respostaId
+    const ultimaMsgBot = [...messages].reverse().find((m) => m.role === 'bot' && m.respostaId);
+    if (!ultimaMsgBot?.respostaId) return;
+
+    try {
+      await authFetch(`${API}/chat/feedback`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          resposta_id: ultimaMsgBot.respostaId,
+          tipo,
+          comentario: comentario || undefined,
+        }),
+      });
+    } catch {
+      // falha silenciosa — feedback não é crítico
+    }
   };
 
   // ── Export ──────────────────────────────────────────────────────────────────
@@ -411,8 +432,8 @@ const Chat = () => {
         {/* Barra inferior */}
         <div className="grid grid-cols-[1fr_auto_1fr] items-center mt-4 sm:mt-5 px-1 gap-3">
           <div className="flex items-center gap-1 sm:gap-2 justify-self-start">
-            <button type="button" onClick={() => setConversationRating(conversationRating === 'positive' ? null : 'positive')} className={`p-2 rounded-lg transition-all duration-200 ${conversationRating === 'positive' ? 'bg-[#1ED76020] text-[#1ED760]' : 'text-slate hover:text-off-white'}`}><ThumbsUp size={18} /></button>
-            <button type="button" onClick={() => setConversationRating(conversationRating === 'negative' ? null : 'negative')} className={`p-2 rounded-lg transition-all duration-200 ${conversationRating === 'negative' ? 'bg-[#E9142920] text-[#E91429]' : 'text-slate hover:text-off-white'}`}><ThumbsDown size={18} /></button>
+            <button type="button" onClick={() => { const novo = conversationRating === 'positive' ? null : 'positive'; setConversationRating(novo); if (novo === 'positive') sendFeedback('like'); }} className={`p-2 rounded-lg transition-all duration-200 ${conversationRating === 'positive' ? 'bg-[#1ED76020] text-[#1ED760]' : 'text-slate hover:text-off-white'}`}><ThumbsUp size={18} /></button>
+            <button type="button" onClick={() => { const novo = conversationRating === 'negative' ? null : 'negative'; setConversationRating(novo); if (novo === 'negative') sendFeedback('dislike'); }} className={`p-2 rounded-lg transition-all duration-200 ${conversationRating === 'negative' ? 'bg-[#E9142920] text-[#E91429]' : 'text-slate hover:text-off-white'}`}><ThumbsDown size={18} /></button>
             <button type="button" onClick={() => setShowFeedback(true)} className="p-2 rounded-lg text-slate hover:text-off-white transition-colors"><Bug size={18} /></button>
             <div className="relative">
               <button type="button" onClick={() => setShowExportMenu((p) => !p)} className="p-2 rounded-lg text-slate hover:text-off-white transition-colors"><Download size={18} /></button>
@@ -476,7 +497,7 @@ const Chat = () => {
               <button type="button" onClick={() => setShowFeedback(false)} className="text-slate hover:text-off-white"><X size={18} /></button>
             </div>
             <textarea value={feedbackText} onChange={(e) => setFeedbackText(e.target.value)} placeholder="Descreva seu feedback..." className="w-full h-28 rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-sm text-off-white placeholder:text-slate focus:outline-none" />
-            <button type="button" onClick={() => { setFeedbackText(''); setShowFeedback(false); }} className="mt-4 w-full bg-[#1DB954] text-black rounded-xl py-2.5 text-sm font-semibold hover:brightness-110">Enviar</button>
+            <button type="button" onClick={() => { sendFeedback('report', feedbackText); setFeedbackText(''); setShowFeedback(false); }} className="mt-4 w-full bg-[#1DB954] text-black rounded-xl py-2.5 text-sm font-semibold hover:brightness-110">Enviar</button>
           </div>
         </div>
       )}

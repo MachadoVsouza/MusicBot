@@ -92,6 +92,15 @@ services:
     depends_on:
       - backend
 
+  tunnel:
+    build: ./tunnel
+    container_name: MusicBot_Tunnel
+    restart: unless-stopped
+    depends_on:
+      - frontend
+    profiles:
+      - tunnel
+
 volumes:
   db_data:
   ollama_data:

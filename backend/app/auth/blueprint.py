@@ -20,7 +20,13 @@ def login():
 
 @auth_bp.get("/callback")
 def callback():
-    frontend = current_app.config["FRONTEND_URL"]
+    # Detecta URL base da request (funciona com tunnel/Cloudflare)
+    forwarded_host = request.headers.get("X-Forwarded-Host")
+    if forwarded_host:
+        scheme = request.headers.get("X-Forwarded-Proto", "https")
+        frontend = f"{scheme}://{forwarded_host.split(',')[0].strip()}"
+    else:
+        frontend = current_app.config["FRONTEND_URL"]
     svc      = _service()
 
     if request.args.get("error"):
