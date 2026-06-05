@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getAuthenticatedUser } from '../services/authService';
 import { useAuth } from '../contexts/AuthContext';
 import AuthCard from '../components/AuthCard';
 import MusicbotLogo from '../components/MusicbotLogo';
@@ -8,51 +7,38 @@ import { Loader2 } from 'lucide-react';
 
 const AuthCallback = () => {
   const navigate = useNavigate();
-  const { loginWithProfile, loginWithToken } = useAuth();
+  const { loginWithToken } = useAuth();
   const [status, setStatus] = useState<'loading' | 'error'>('loading');
 
   useEffect(() => {
     const handleCallback = async () => {
-      const flow = localStorage.getItem('auth_flow') || 'login';
-      localStorage.removeItem('auth_flow');
-
       try {
         const params = new URLSearchParams(window.location.search);
         const tokenFromUrl = params.get('token');
 
         if (tokenFromUrl) {
-          localStorage.setItem('musicbot_jwt', tokenFromUrl);
           window.history.replaceState({}, '', '/chat');
-          await loginWithToken(tokenFromUrl);
-          navigate('/chat', { replace: true });
+          const ok = await loginWithToken(tokenFromUrl);
+          if (ok) {
+            navigate('/chat', { replace: true });
+          } else {
+            setStatus('error');
+            setTimeout(() => navigate('/entrar?error=auth_failed', { replace: true }), 2000);
+          }
           return;
         }
 
-        const profile = await getAuthenticatedUser();
-
-        if (profile) {
-          if (flow === 'register') {
-            navigate('/registration-form', { replace: true });
-          } else {
-            loginWithProfile(profile);
-            navigate('/chat', { replace: true });
-          }
-        } else {
-          setStatus('error');
-          setTimeout(() => {
-            navigate('/entrar?error=auth_failed', { replace: true });
-          }, 2000);
-        }
+        // Sem token na URL — fluxo inválido
+        setStatus('error');
+        setTimeout(() => navigate('/entrar?error=auth_failed', { replace: true }), 2000);
       } catch {
         setStatus('error');
-        setTimeout(() => {
-          navigate('/entrar?error=auth_failed', { replace: true });
-        }, 2000);
+        setTimeout(() => navigate('/entrar?error=auth_failed', { replace: true }), 2000);
       }
     };
 
     handleCallback();
-  }, [navigate, loginWithProfile, loginWithToken]);
+  }, [navigate, loginWithToken]);
 
   return (
     <AuthCard>

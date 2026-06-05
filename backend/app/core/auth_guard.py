@@ -60,6 +60,7 @@ def _try_refresh(repo: AuthRepository, usuario) -> str | None:
         "grant_type":    "refresh_token",
         "refresh_token": refresh_token,
         "client_id":     cfg["SPOTIFY_CLIENT_ID"],
+        "client_secret": cfg["SPOTIFY_CLIENT_SECRET"],
     })
 
     if not resp.ok:

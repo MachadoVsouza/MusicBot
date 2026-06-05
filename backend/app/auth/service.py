@@ -134,7 +134,7 @@ class AuthService:
                 spotify_refresh_token=refresh_token,
             )
             self.repo.clear_temp()
-            return {"success": True, "usuario_id": usuario.spotify_id}
+            return {"success": True, "spotify_id": usuario.spotify_id}
         except Exception as e:
             return {"success": False, "message": str(e), "code": "user_creation_error"}
 
@@ -148,7 +148,7 @@ class AuthService:
                 return {"success": False, "message": "Use Spotify para fazer login."}
             if not check_password_hash(usuario.password_hash, password):
                 return {"success": False, "message": "Email ou senha inválidos"}
-            return {"success": True, "usuario_id": usuario.spotify_id}
+            return {"success": True, "spotify_id": usuario.spotify_id}
         except Exception as e:
             return {"success": False, "message": str(e)}
 

@@ -42,20 +42,46 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(() => localStorage.getItem(TOKEN_KEY));
 
-  /** Valida o token salvo ao montar (ex: reload de página) */
+  /** Valida o token salvo ao montar (ex: reload de página) e tenta carregar perfil */
   useEffect(() => {
     if (token && !user) {
-      fetchMe(token).catch(() => logout());
+      _loadProfile(token).catch(() => logout());
     }
   }, []);
 
+  /** Carrega perfil do Spotify a partir do JWT */
+  async function _loadProfile(jwt: string): Promise<void> {
+    const meRes = await fetch('/api/auth/me', {
+      headers: { Authorization: `Bearer ${jwt}` },
+    });
+    if (!meRes.ok) throw new Error('invalid token');
+
+    try {
+      const res = await fetch('/api/spotify/profile', {
+        headers: { Authorization: `Bearer ${jwt}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const profile = data.data ?? data;
+        setUser({
+          name:      profile.display_name ?? profile.name ?? '',
+          email:     profile.email ?? '',
+          avatar:    profile.avatar ?? profile.images?.[0]?.url ?? '',
+          role:      'moderator',
+          plan:      profile.plan ?? profile.product ?? 'free',
+          followers: profile.followers?.total ?? profile.followers ?? 0,
+        });
+      }
+    } catch {
+      // Perfil Spotify indisponível — fica sem user até navegar
+    }
+  }
+
   async function fetchMe(jwt: string): Promise<void> {
-    const res = await fetch('/auth/me', {
+    const res = await fetch('/api/auth/me', {
       headers: { Authorization: `Bearer ${jwt}` },
     });
     if (!res.ok) throw new Error('invalid token');
-    // /auth/me só retorna usuario_id; o perfil completo já deve estar
-    // carregado ou pode ser buscado em /spotify/profile se necessário
   }
 
   const _saveToken = (jwt: string) => {
@@ -76,12 +102,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
   }, []);
 
-  /** Usado após login-custom (não temos o perfil, só o JWT) */
+  /** Usado após login-custom ou callback Spotify (não temos o perfil, só o JWT) */
   const loginWithToken = useCallback(async (jwt: string): Promise<boolean> => {
     try {
       await fetchMe(jwt);
       _saveToken(jwt);
-      // Perfil pode ser carregado depois via /spotify/profile com o token
+      // Tenta carregar o perfil do Spotify automaticamente
+      try {
+        const res = await fetch('/api/spotify/profile', {
+          headers: { Authorization: `Bearer ${jwt}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const profile = data.data ?? data;
+          setUser({
+            name:      profile.display_name ?? profile.name ?? '',
+            email:     profile.email ?? '',
+            avatar:    profile.avatar ?? profile.images?.[0]?.url ?? '',
+            role:      'moderator',
+            plan:      profile.plan ?? profile.product ?? 'free',
+            followers: profile.followers?.total ?? profile.followers ?? 0,
+          });
+        }
+      } catch {
+        // Perfil Spotify não disponível (login custom) — continua sem user
+      }
       return true;
     } catch {
       return false;

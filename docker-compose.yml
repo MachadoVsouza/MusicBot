@@ -35,11 +35,11 @@ services:
               count: 1
               capabilities: [gpu]
     healthcheck:
-      test: ["CMD-SHELL", "ollama list | grep -q 'gemma4:e4b' || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 20s
+      retries: 10
+      start_period: 120s
 
   ollama-init:
     image: ollama/ollama:latest
@@ -75,14 +75,14 @@ services:
       FRONTEND_URL:          http://127.0.0.1:8080
       OLLAMA_BASE_URL:       http://ollama:11434
       OLLAMA_MODEL:          gemma4:e4b
-      OLLAMA_KEEP_ALIVE:     30s
+      OLLAMA_KEEP_ALIVE:     10m
     ports:
       - "5000:5000"
     depends_on:
       db:
         condition: service_healthy
       ollama:
-        condition: service_started
+        condition: service_healthy
 
   frontend:
     build: ./frontend

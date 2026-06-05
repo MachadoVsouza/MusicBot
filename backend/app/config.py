@@ -33,11 +33,9 @@ class Config:
         "playlist-read-private",
         "playlist-modify-public",
         "playlist-modify-private",
-        "user-read-playback-state",
         "user-modify-playback-state",
+        "user-read-playback-state",
         "user-read-currently-playing",
-        "user-read-playback-position",
-        "user-follow-read",
     ])
 
     # ReccoBeats

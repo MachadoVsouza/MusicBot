@@ -41,10 +41,12 @@ class SpotifyService:
         results = self.repo.get_recently_played()
         return [
             {
-                "name":      item["track"]["name"],
-                "artist":    item["track"]["artists"][0]["name"],
-                "album":     item["track"]["album"]["name"],
-                "played_at": item["played_at"],
+                "name":        item["track"]["name"],
+                "artist":      item["track"]["artists"][0]["name"],
+                "album":       item["track"]["album"]["name"],
+                "played_at":   item["played_at"],
+                "preview_url": item["track"].get("preview_url"),
+                "spotify_url": item["track"]["external_urls"].get("spotify"),
             }
             for item in results["items"]
         ]
@@ -110,3 +112,54 @@ class SpotifyService:
     def add_tracks_to_playlist(self, playlist_id: str, track_uris: list[str]) -> bool:
         self.repo.add_tracks_to_playlist(playlist_id, track_uris)
         return True
+
+    # ── Playback ──────────────────────────────────────────────────────────────
+
+    def get_devices(self) -> list[dict]:
+        """Retorna dispositivos disponíveis para playback."""
+        return self.repo.get_available_devices()
+
+    def play_track(self, track_uri: str, device_id: str | None = None) -> dict:
+        """Toca uma música específica no Spotify."""
+        success = self.repo.start_playback(device_id=device_id, uris=[track_uri])
+        if not success:
+            return {"erro": "Nenhum dispositivo ativo encontrado. Abra o Spotify em algum dispositivo primeiro."}
+        return {"ok": True, "mensagem": "Música tocando no seu Spotify!"}
+
+    def play_context(self, context_uri: str, device_id: str | None = None) -> dict:
+        """Toca um contexto (playlist, album, artista) no Spotify."""
+        success = self.repo.start_playback(device_id=device_id, context_uri=context_uri)
+        if not success:
+            return {"erro": "Nenhum dispositivo ativo encontrado."}
+        return {"ok": True, "mensagem": "Tocando no seu Spotify!"}
+
+    def pause(self, device_id: str | None = None) -> dict:
+        success = self.repo.pause_playback(device_id)
+        return {"ok": success, "mensagem": "Playback pausado." if success else "Não foi possível pausar."}
+
+    def next(self, device_id: str | None = None) -> dict:
+        success = self.repo.next_track(device_id)
+        return {"ok": success, "mensagem": "Próxima faixa." if success else "Não foi possível avançar."}
+
+    def previous(self, device_id: str | None = None) -> dict:
+        success = self.repo.previous_track(device_id)
+        return {"ok": success, "mensagem": "Faixa anterior." if success else "Não foi possível voltar."}
+
+    def get_current_playback_state(self) -> dict | None:
+        """Retorna o estado atual do playback: faixa, progresso, dispositivo."""
+        playback = self.repo.get_current_playback()
+        if not playback:
+            return {"playing": False, "device": None, "track": None}
+        track = playback.get("item")
+        return {
+            "playing":     playback.get("is_playing", False),
+            "progress_ms": playback.get("progress_ms", 0),
+            "device":      playback.get("device"),
+            "track":       {
+                "name":    track.get("name") if track else None,
+                "artists": [a["name"] for a in track.get("artists", [])] if track else [],
+                "album":   track.get("album", {}).get("name") if track else None,
+                "uri":     track.get("uri") if track else None,
+                "url":     track.get("external_urls", {}).get("spotify") if track else None,
+            } if track else None,
+        }

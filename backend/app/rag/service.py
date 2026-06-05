@@ -1,66 +1,53 @@
 import re
+import logging
 import requests
+from langchain.text_splitter import RecursiveCharacterTextSplitter
 from .repository import RagRepository
 
-CHUNK_SIZE    = 500
-CHUNK_OVERLAP = 50
+logger = logging.getLogger(__name__)
+
+_splitter = RecursiveCharacterTextSplitter(
+    chunk_size         = 600,
+    chunk_overlap      = 100,
+    separators         = ["\n\n", "\n", ". ", " ", ""],
+    length_function    = len,
+)
 
 
 class RagService:
     def __init__(self):
         self.repo = RagRepository()
 
-    # ── Extração de conteúdo ──────────────────────────────────────────────────
+    # ── Extração ──────────────────────────────────────────────────────────────
 
     def _extrair_de_url(self, url: str) -> str | None:
-        """Baixa o conteúdo de uma URL e extrai o texto."""
         try:
-            resp = requests.get(url, timeout=15)
+            resp  = requests.get(url, timeout=15)
             resp.raise_for_status()
-            # Remove tags HTML básicas
             texto = re.sub(r'<[^>]+>', ' ', resp.text)
             texto = re.sub(r'\s+', ' ', texto).strip()
-            return texto[:50000]  # limita para não explodir o banco
+            return texto[:50000]
         except Exception:
+            logger.exception("Erro ao extrair URL: %s", url)
             return None
 
     def _extrair_de_pdf(self, conteudo_bytes: bytes) -> str | None:
-        """Extrai texto de um PDF em bytes usando pypdf."""
         try:
             import io
             from pypdf import PdfReader
             reader = PdfReader(io.BytesIO(conteudo_bytes))
-            texto  = "\n".join(page.extract_text() or "" for page in reader.pages)
-            return texto.strip()
+            return "\n".join(p.extract_text() or "" for p in reader.pages).strip()
         except Exception:
+            logger.exception("Erro ao extrair PDF")
             return None
 
-    # ── Chunking ──────────────────────────────────────────────────────────────
+    # ── Chunking via LangChain ────────────────────────────────────────────────
 
     def _chunk_text(self, texto: str) -> list[str]:
-        texto      = re.sub(r'\n{3,}', '\n\n', texto.strip())
-        paragrafos = texto.split('\n\n')
-        chunks     = []
-        atual      = ""
+        chunks = _splitter.split_text(texto)
+        return [c.strip() for c in chunks if len(c.strip()) > 30]
 
-        for paragrafo in paragrafos:
-            if len(atual) + len(paragrafo) <= CHUNK_SIZE:
-                atual += paragrafo + "\n\n"
-            else:
-                if atual:
-                    chunks.append(atual.strip())
-                    atual = atual[-CHUNK_OVERLAP:] + paragrafo + "\n\n"
-                else:
-                    for i in range(0, len(paragrafo), CHUNK_SIZE - CHUNK_OVERLAP):
-                        chunks.append(paragrafo[i:i + CHUNK_SIZE].strip())
-                    atual = ""
-
-        if atual.strip():
-            chunks.append(atual.strip())
-
-        return [c for c in chunks if len(c) > 20]
-
-    # ── Upload — salva como pendente ──────────────────────────────────────────
+    # ── Upload ────────────────────────────────────────────────────────────────
 
     def submeter_documento(
         self,
@@ -72,29 +59,17 @@ class RagService:
         url: str = None,
         pdf_bytes: bytes = None,
     ) -> dict:
-        """
-        Recebe o documento do usuário e salva como PENDENTE.
-        Verifica duplicata antes de salvar.
-        Extrai conteúdo de URL ou PDF se fornecido.
-        """
-        # Extrai conteúdo conforme o tipo
         if tipo == "link" and url:
             conteudo = self._extrair_de_url(url)
             if not conteudo:
                 return {"erro": "Não foi possível extrair conteúdo da URL."}
-
         elif tipo == "pdf" and pdf_bytes:
             conteudo = self._extrair_de_pdf(pdf_bytes)
             if not conteudo:
                 return {"erro": "Não foi possível extrair texto do PDF."}
 
-        # Verifica duplicata usando o primeiro chunk como amostra
-        amostra = conteudo[:500]
-        if self.repo.verificar_duplicata(amostra):
-            return {
-                "duplicata": True,
-                "mensagem":  "Já existe conteúdo similar na base de conhecimento.",
-            }
+        if self.repo.verificar_duplicata(conteudo[:500]):
+            return {"duplicata": True, "mensagem": "Já existe conteúdo similar na base de conhecimento."}
 
         doc = self.repo.salvar_documento_pendente(
             super_usuario_id = super_usuario_id,
@@ -103,7 +78,6 @@ class RagService:
             tipo             = tipo,
             uploaded_by      = uploaded_by,
         )
-
         return {
             "documento_id": doc.id,
             "titulo":       doc.titulo,
@@ -111,27 +85,15 @@ class RagService:
             "mensagem":     "Documento enviado e aguardando aprovação do moderador.",
         }
 
-    # ── Aprovação — indexa os chunks ──────────────────────────────────────────
+    # ── Aprovação ─────────────────────────────────────────────────────────────
 
     def aprovar_e_indexar(self, documento_id: int, aprovado_por: str) -> dict:
-        """
-        Moderador aprova o documento.
-        Marca como aprovado e indexa os chunks no banco.
-        """
         doc = self.repo.aprovar_documento(documento_id, aprovado_por)
         if not doc:
             return {"erro": "Documento não encontrado."}
 
-        chunks    = self._chunk_text(doc.conteudo_original)
-        indexados = 0
-        falhos    = 0
-
-        for chunk in chunks:
-            resultado = self.repo.salvar_fragmento(doc.id, chunk)
-            if resultado:
-                indexados += 1
-            else:
-                falhos += 1
+        chunks              = self._chunk_text(doc.conteudo_original)
+        indexados, falhos   = self.repo.salvar_fragmentos_batch(documento_id, chunks)
 
         return {
             "documento_id": doc.id,
@@ -148,9 +110,9 @@ class RagService:
         if not doc:
             return {"erro": "Documento não encontrado."}
         return {
-            "documento_id":   doc.id,
-            "status":         doc.status.value,
-            "rejeitado_por":  aprovado_por,
+            "documento_id":    doc.id,
+            "status":          doc.status.value,
+            "rejeitado_por":   aprovado_por,
             "motivo_rejeicao": motivo,
         }
 
@@ -162,14 +124,14 @@ class RagService:
         docs   = self.repo.listar_documentos(filtro)
         return [
             {
-                "id":             d.id,
-                "titulo":         d.titulo,
-                "tipo":           d.tipo,
-                "status":         d.status.value,
-                "uploaded_by":    d.uploaded_by,
-                "uploaded_at":    d.uploaded_at.isoformat(),
-                "aprovado_por":   d.aprovado_por,
-                "aprovado_em":    d.aprovado_em.isoformat() if d.aprovado_em else None,
+                "id":              d.id,
+                "titulo":          d.titulo,
+                "tipo":            d.tipo,
+                "status":          d.status.value,
+                "uploaded_by":     d.uploaded_by,
+                "uploaded_at":     d.uploaded_at.isoformat(),
+                "aprovado_por":    d.aprovado_por,
+                "aprovado_em":     d.aprovado_em.isoformat() if d.aprovado_em else None,
                 "motivo_rejeicao": d.motivo_rejeicao,
             }
             for d in docs
@@ -180,7 +142,7 @@ class RagService:
 
     # ── Busca RAG ─────────────────────────────────────────────────────────────
 
-    def buscar_contexto(self, pergunta: str, limite: int = 3) -> list[dict]:
+    def buscar_contexto(self, pergunta: str, limite: int = 5) -> list[dict]:
         fragmentos = self.repo.buscar_similares(pergunta, limite)
         return [
             {

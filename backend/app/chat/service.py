@@ -1,16 +1,33 @@
 import re
+import json
 from .repository import ChatRepository
 from app.langchain.repository import OllamaRepository
 from app.rag.service import RagService
-from app.agents.service import run_agent
+from app.agents.service import run_agent, run_agent_stream
 
-SYSTEM_PROMPT = """Você é o MusicBot, um assistente musical inteligente.
-Responda sempre em português, de forma concisa e direta."""
+SYSTEM_PROMPT = """Você é o MusicBot, um assistente musical inteligente e apaixonado por música.
 
-SYSTEM_PROMPT_RAG = """Você é o MusicBot, um assistente musical inteligente.
-Responda APENAS com base no CONTEXTO abaixo.
-Se a informação não estiver no contexto, diga: "Não encontrei informações sobre isso na base de conhecimento."
-Não invente informações. Responda em português.
+Diretrizes:
+- Use emojis apenas para diferenciar bandas,musicas,playlist etc, mas não exagere — o foco é a informação, não os emojis
+- Responda SEMPRE em português brasileiro
+- Seja detalhado e completo — desenvolva bem suas respostas
+- Quando falar de artistas, músicas ou álbuns, inclua contexto interessante (história, influências, curiosidades)
+- Demonstre entusiasmo e conhecimento musical
+- Use parágrafos bem estruturados
+- Nunca corte a resposta no meio — sempre conclua o raciocínio
+- Se não souber algo, diga claramente que não sabe responder a pergunta
+- Foque apenas em assuntos que envolvam musica, nao fuja do tema, so comente de outros assuntos caso possua correlação com musica e afins
+"""
+
+SYSTEM_PROMPT_RAG = """Você é o MusicBot, um assistente musical inteligente e apaixonado por música.
+
+Diretrizes:
+- Responda SEMPRE em português brasileiro
+- Use o CONTEXTO abaixo como base principal da sua resposta
+- Seja detalhado e completo — desenvolva bem suas respostas com o que está no contexto
+- Se o contexto não tiver informação suficiente, diga: "Não encontrei informações completas sobre isso na base de conhecimento, mas posso te ajudar com o que sei."
+- Nunca corte a resposta no meio — sempre conclua o raciocínio
+- Use parágrafos bem estruturados
 
 CONTEXTO:
 {contexto}"""
@@ -120,24 +137,42 @@ class ChatService:
         usou_rag   = False
         fragmentos = []
 
-        # Agent não faz streaming por enquanto — cai no modo normal
+        # Agent com streaming real
         if token and _detectar_intencao_spotify(mensagem):
-            resultado_agent   = run_agent(token, mensagem, historico)
-            conteudo_resposta = resultado_agent["resposta"]
-            midia             = resultado_agent.get("midia")
+            # Objeto mutável compartilhado entre generator e after_stream
+            state = type("State", (), {"midia": None, "chunks": [], "tool_calls": []})()
 
-            resposta = self.chat_repo.salvar_resposta(pergunta.id, conteudo_resposta, False)
+            def _stream_agent():
+                for event in run_agent_stream(token, mensagem, historico):
+                    if event["type"] == "token":
+                        state.chunks.append(event["content"])
+                        yield event["content"]
+                    elif event["type"] == "tool_call":
+                        state.tool_calls.append(event)
+                    elif event["type"] == "midia":
+                        state.midia = event["midia"]
+                    elif event["type"] == "error":
+                        state.chunks.append(event["content"])
+                        yield event["content"]
 
-            # Simula stream para o frontend receber no mesmo formato
-            def _fake_stream():
-                yield conteudo_resposta
+            stream_gen = _stream_agent()
+
+            def _after_stream_agent():
+                conteudo = "".join(state.chunks)
+                if not conteudo:
+                    conteudo = "Desculpe, não consegui processar sua mensagem."
+                resposta = self.chat_repo.salvar_resposta(pergunta.id, conteudo, False)
+                # Retorna midia junto com a resposta — o blueprint precisa disso
+                return resposta, state.midia
 
             return {
-                "stream":      _fake_stream(),
-                "pergunta_id": pergunta.id,
-                "resposta_id": resposta.id,
-                "usou_rag":    False,
-                "midia":       midia,
+                "stream":       stream_gen,
+                "after_stream": _after_stream_agent,
+                "pergunta_id":  pergunta.id,
+                "resposta_id":  None,
+                "usou_rag":     False,
+                "midia":        None,  # será preenchido pelo after_stream
+                "tool_calls":   None,  # será preenchido pelo after_stream
             }
 
         # RAG
@@ -173,6 +208,7 @@ class ChatService:
             "stream":       stream_gen,
             "after_stream": _after_stream,
             "pergunta_id":  pergunta.id,
+            "resposta_id":  None,
             "usou_rag":     usou_rag,
             "midia":        midia,
             "fragmentos":   fragmentos,
