@@ -1,6 +1,4 @@
 import os
-
-
 class Config:
     # Flask
     SECRET_KEY = os.getenv("APP_SECRET_KEY", "dev-secret-change-in-prod")
@@ -17,15 +15,16 @@ class Config:
 
     # URLs
     FRONTEND_URL  = os.getenv("FRONTEND_URL",  "http://127.0.0.1:8080")
-    REDIRECT_URI  = os.getenv("SPOTIFY_REDIRECT_URI", "http://127.0.0.1:8080/api/auth/callback")
+    REDIRECT_URI  = os.getenv("SPOTIFY_REDIRECT_URI", "http://127.0.0.1:5000/api/auth/callback")
 
     # Spotify
+    # SPOTIFY_REDIRECT_URI = os.getenv("SPOTIFY_REDIRECT_URI", "http://localhost:5000/api/auth/callback")
     SPOTIFY_CLIENT_ID = os.getenv("SPOTIFY_CLIENT_ID", "b5727e21ded847928278e6fe1782060f")
     SPOTIFY_CLIENT_SECRET = os.getenv("SPOTIFY_CLIENT_SECRET", "")
     SPOTIFY_AUTH_URL  = "https://accounts.spotify.com/authorize"
     SPOTIFY_TOKEN_URL = "https://accounts.spotify.com/api/token"
     SPOTIFY_API_BASE  = "https://api.spotify.com/v1"
-    SPOTIFY_SCOPES    = " ".join([
+    SPOTIFY_SCOPES = " ".join([
         "user-read-private",
         "user-read-email",
         "user-library-read",

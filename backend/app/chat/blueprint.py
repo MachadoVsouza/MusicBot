@@ -29,18 +29,23 @@ def listar_chats(token: str, usuario_id: str):
     return success({"chats": _svc().listar_chats(usuario_id)})
 
 
-# ── Histórico de mensagens ────────────────────────────────────────────────────
+# ── Buscar mensagens de um chat específico ────────────────────────────────────
 
 @chat_bp.get("/<int:chat_id>/messages")
 @require_auth
-def get_mensagens(token: str, usuario_id: str, chat_id: int):
-    resultado = _svc().get_mensagens(usuario_id, chat_id)
-    if resultado is None:
+def buscar_mensagens(token: str, usuario_id: str, chat_id: int):
+    mensagens = _svc().get_mensagens(usuario_id, chat_id)
+    
+    if mensagens is None:
         return not_found("Chat não encontrado")
-    return success({"messages": resultado})
+    
+    return success({
+        "chat_id": chat_id,
+        "messages": mensagens
+    })
 
 
-# ── Enviar mensagem (normal) ──────────────────────────────────────────────────
+# ── Enviar mensagem ───────────────────────────────────────────────────────────────
 
 @chat_bp.post("/<int:chat_id>/message")
 @require_auth

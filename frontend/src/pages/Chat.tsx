@@ -282,7 +282,8 @@ const Chat = () => {
     const next = idx <= 0 ? conversations.length - 1 : idx - 1;
     loadConversationMessages(conversations[next].id);
   };
-  const handleNextConversation = () => {
+
+  const handleNextConversation = async () => {
     if (!canNavigateConversations) return;
     const idx = conversations.findIndex((c) => c.id === currentConversationId);
     const next = idx >= conversations.length - 1 ? 0 : idx + 1;
