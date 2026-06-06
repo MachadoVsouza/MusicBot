@@ -33,6 +33,7 @@ class Usuario(Base):#USUARIO TEM EMAIL E SENHA OPCIONAIS MODIFICAR ISSO PROVAVLE
     password_hash         : Mapped[str|None] = mapped_column(Text, nullable=True)
     spotify_token         : Mapped[str|None] = mapped_column(Text)
     spotify_refresh_token : Mapped[str|None] = mapped_column(Text)
+    llm_provider          : Mapped[str]      = mapped_column(String(10), default="local")  # "local" | "ifes"
     chats      : Mapped[list["Chat"]]      = relationship(back_populates="usuario")
     moderadores: Mapped[list["Moderador"]] = relationship(back_populates="usuario")
 

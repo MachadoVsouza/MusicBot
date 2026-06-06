@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Bug, ChevronLeft, ChevronRight, Download, ExternalLink,
   MessageSquare, Music, Paperclip, Pause, Play, Settings,
-  Square, ThumbsDown, ThumbsUp, UserCircle, X,
+  Square, Terminal, ThumbsDown, ThumbsUp, UserCircle, X,
 } from 'lucide-react';
 import { useAuth, authFetch } from '@/contexts/AuthContext';
 import MusicbotLogo from '@/components/MusicbotLogo';
@@ -14,12 +14,28 @@ type ConversationRating = 'positive' | 'negative' | null;
 
 interface Source { name: string; category: string; origin: string; date: string; version: string; excerpt: string; }
 interface Midia { tipo: string; preview_url: string; nome: string; artista: string; url: string; }
-interface Message { id: string; role: MessageRole; content: string; timestamp: string; sources?: Source[]; midia?: Midia | null; streaming?: boolean; }
+interface Message { id: string; role: MessageRole; content: string; timestamp: string; sources?: Source[]; midia?: Midia | null; streaming?: boolean; respostaId?: number; }
 interface Conversation { id: string; title: string; updatedAt: string; messages: Message[]; }
 interface ChatApiResponse { id: string | number; titulo: string; updated_at: string; }
 
 const DEFAULT_BOT_REPLY = 'No momento não foi possível gerar uma resposta. Tente novamente mais tarde.';
 const fmt = (iso?: string) => new Date(iso ?? Date.now()).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+// ── Comandos disponíveis ────────────────────────────────────────────────────────
+const COMMANDS = [
+  { cmd: 'Buscar música/artista', desc: '"busca tal música" ou "procura artista X"' },
+  { cmd: 'Tocar música', desc: '"toca música X" ou "play X de Y"' },
+  { cmd: 'Tocar playlist', desc: '"toca minha playlist tal" ou "play playlist X"' },
+  { cmd: 'Pausar/Voltar', desc: '"pausa" ou "para a música"' },
+  { cmd: 'Próxima/Anterior', desc: '"próxima música" ou "volta pra anterior"' },
+  { cmd: 'Adicionar na fila', desc: '"adiciona X na fila" ou "bota X depois dessa"' },
+  { cmd: 'Listar playlists', desc: '"minhas playlists" ou "mostra minhas playlists"' },
+  { cmd: 'Músicas curtidas', desc: '"minhas curtidas" ou "favoritos"' },
+  { cmd: 'Músicas recentes', desc: '"músicas recentes" ou "últimas tocadas"' },
+  { cmd: 'Top músicas/artistas', desc: '"meus top artistas" ou "mais tocadas"' },
+  { cmd: 'Trocar dispositivo', desc: '"toca no celular" ou "muda pro notebook"' },
+  { cmd: 'Informações gerais', desc: '"o que sabe sobre X?" (usa RAG + LLM)' },
+];
 
 // ── Mini Player ───────────────────────────────────────────────────────────────
 const MiniPlayer = ({ midia }: { midia: Midia }) => {
@@ -105,9 +121,12 @@ const Chat = () => {
   const [showFeedback, setShowFeedback] = useState(false);
   const [showPreferences, setShowPreferences] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const [showCommands, setShowCommands] = useState(false);
   const [selectedSource, setSelectedSource] = useState<Source | null>(null);
   const [feedbackText, setFeedbackText] = useState('');
   const [preferences, setPreferences] = useState({ audioEnabled: true, compactMode: false });
+  const [llmProvider, setLlmProvider] = useState<'local' | 'ifes'>('local');
+  const [providerLoading, setProviderLoading] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef    = useRef<HTMLTextAreaElement>(null);
@@ -137,6 +156,32 @@ const Chat = () => {
     };
     loadChats();
   }, []);
+
+  // Carrega o provedor LLM do usuário
+  useEffect(() => {
+    const loadProvider = async () => {
+      try {
+        const res = await authFetch(`${API}/llm-provider/`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.provider) setLlmProvider(data.provider);
+      } catch { }
+    };
+    if (user) loadProvider();
+  }, [user]);
+
+  const toggleProvider = async () => {
+    const novo = llmProvider === 'local' ? 'ifes' : 'local';
+    setProviderLoading(true);
+    try {
+      const res = await authFetch(`${API}/llm-provider/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ provider: novo }),
+      });
+      if (res.ok) setLlmProvider(novo);
+    } catch { } finally { setProviderLoading(false); }
+  };
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, isTyping]);
   useEffect(() => { resizeTextarea(); }, [inputValue]);
@@ -246,7 +291,7 @@ const Chat = () => {
               setMessages((prev) => prev.map((m) => m.id === botId ? { ...m, content: m.content + json.chunk } : m));
             }
             if (json.done) {
-              setMessages((prev) => prev.map((m) => m.id === botId ? { ...m, streaming: false, midia: json.midia ?? null } : m));
+              setMessages((prev) => prev.map((m) => m.id === botId ? { ...m, streaming: false, midia: json.midia ?? null, respostaId: json.resposta_id } : m));
             }
           }
 
@@ -292,6 +337,27 @@ const Chat = () => {
   const handleSelectConversation = async (id: string) => {
     setShowHistory(false);
     await loadConversationMessages(id);
+  };
+
+  // ── Feedback ──────────────────────────────────────────────────────────────────
+  const sendFeedback = async (tipo: 'like' | 'dislike' | 'report', comentario: string = '') => {
+    // Pega a última mensagem do bot que tenha respostaId
+    const ultimaMsgBot = [...messages].reverse().find((m) => m.role === 'bot' && m.respostaId);
+    if (!ultimaMsgBot?.respostaId) return;
+
+    try {
+      await authFetch(`${API}/chat/feedback`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          resposta_id: ultimaMsgBot.respostaId,
+          tipo,
+          comentario: comentario || undefined,
+        }),
+      });
+    } catch {
+      // falha silenciosa — feedback não é crítico
+    }
   };
 
   // ── Export ──────────────────────────────────────────────────────────────────
@@ -412,8 +478,9 @@ const Chat = () => {
         {/* Barra inferior */}
         <div className="grid grid-cols-[1fr_auto_1fr] items-center mt-4 sm:mt-5 px-1 gap-3">
           <div className="flex items-center gap-1 sm:gap-2 justify-self-start">
-            <button type="button" onClick={() => setConversationRating(conversationRating === 'positive' ? null : 'positive')} className={`p-2 rounded-lg transition-all duration-200 ${conversationRating === 'positive' ? 'bg-[#1ED76020] text-[#1ED760]' : 'text-slate hover:text-off-white'}`}><ThumbsUp size={18} /></button>
-            <button type="button" onClick={() => setConversationRating(conversationRating === 'negative' ? null : 'negative')} className={`p-2 rounded-lg transition-all duration-200 ${conversationRating === 'negative' ? 'bg-[#E9142920] text-[#E91429]' : 'text-slate hover:text-off-white'}`}><ThumbsDown size={18} /></button>
+            <button type="button" onClick={() => { const novo = conversationRating === 'positive' ? null : 'positive'; setConversationRating(novo); if (novo === 'positive') sendFeedback('like'); }} className={`p-2 rounded-lg transition-all duration-200 ${conversationRating === 'positive' ? 'bg-[#1ED76020] text-[#1ED760]' : 'text-slate hover:text-off-white'}`}><ThumbsUp size={18} /></button>
+            <button type="button" onClick={() => { const novo = conversationRating === 'negative' ? null : 'negative'; setConversationRating(novo); if (novo === 'negative') sendFeedback('dislike'); }} className={`p-2 rounded-lg transition-all duration-200 ${conversationRating === 'negative' ? 'bg-[#E9142920] text-[#E91429]' : 'text-slate hover:text-off-white'}`}><ThumbsDown size={18} /></button>
+            <button type="button" onClick={() => setShowCommands(true)} className="p-2 rounded-lg text-slate hover:text-off-white transition-colors" title="Comandos disponíveis"><Terminal size={18} /></button>
             <button type="button" onClick={() => setShowFeedback(true)} className="p-2 rounded-lg text-slate hover:text-off-white transition-colors"><Bug size={18} /></button>
             <div className="relative">
               <button type="button" onClick={() => setShowExportMenu((p) => !p)} className="p-2 rounded-lg text-slate hover:text-off-white transition-colors"><Download size={18} /></button>
@@ -436,7 +503,20 @@ const Chat = () => {
             <button type="button" onClick={handleNextConversation} disabled={!canNavigateConversations} className="p-1 text-slate hover:text-off-white transition-colors disabled:opacity-30"><ChevronRight size={18} /></button>
           </div>
 
-          <div className="relative justify-self-end">
+          {/* Toggle de provedor LLM */}
+          <div className="flex items-center gap-2 justify-self-end">
+            <button
+              type="button"
+              onClick={toggleProvider}
+              disabled={providerLoading}
+              className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none ${llmProvider === 'ifes' ? 'bg-[#1DB954]' : 'bg-[#3E3E3E]'}`}
+              title={`LLM: ${llmProvider === 'ifes' ? 'IFES Colatina (gemma3:12b)' : 'Local (qwen:4b)'}`}
+            >
+              <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${llmProvider === 'ifes' ? 'translate-x-6' : 'translate-x-1'}`} />
+            </button>
+            <span className="text-[10px] text-slate font-mono hidden sm:inline">
+              {llmProvider === 'ifes' ? 'IFES' : 'Local'}
+            </span>
             <button type="button" onClick={() => setShowSettings((p) => !p)}>
               <img src={userAvatar} alt={userAlt} className="w-9 h-9 rounded-full border-2 border-[#1DB954] hover:scale-105 transition-transform object-cover"
                 onError={(e) => { (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user?.name ?? 'U')}`; }} />
@@ -469,6 +549,31 @@ const Chat = () => {
         </div>
       )}
 
+      {showCommands && (
+        <div className="fixed inset-0 bg-black/70 z-30 flex items-end sm:items-center justify-center p-4">
+          <div className="bg-[#181818] border border-[#282828] rounded-2xl w-full max-w-xl p-4 sm:p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-off-white font-display text-lg flex items-center gap-2"><Terminal size={20} className="text-[#1DB954]" /> Comandos disponíveis</h3>
+              <button type="button" onClick={() => setShowCommands(false)} className="text-slate hover:text-off-white"><X size={18} /></button>
+            </div>
+            <div className="space-y-1 max-h-80 overflow-auto">
+              {COMMANDS.map((item, i) => (
+                <div key={i} className="flex items-start gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 transition-colors">
+                  <span className="text-[#1DB954] font-mono text-sm mt-0.5">▸</span>
+                  <div>
+                    <p className="text-off-white text-sm font-medium">{item.cmd}</p>
+                    <p className="text-slate text-xs mt-0.5">Exemplo: <span className="text-off-white/70">{item.desc}</span></p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 pt-3 border-t border-white/10">
+              <p className="text-slate text-xs">💡 O MusicBot detecta automaticamente quando você quer usar o Spotify e executa a ação diretamente.</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showFeedback && (
         <div className="fixed inset-0 bg-black/70 z-30 flex items-end sm:items-center justify-center p-4">
           <div className="bg-[#181818] border border-[#282828] rounded-2xl w-full max-w-lg p-4 sm:p-5">
@@ -477,7 +582,7 @@ const Chat = () => {
               <button type="button" onClick={() => setShowFeedback(false)} className="text-slate hover:text-off-white"><X size={18} /></button>
             </div>
             <textarea value={feedbackText} onChange={(e) => setFeedbackText(e.target.value)} placeholder="Descreva seu feedback..." className="w-full h-28 rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-sm text-off-white placeholder:text-slate focus:outline-none" />
-            <button type="button" onClick={() => { setFeedbackText(''); setShowFeedback(false); }} className="mt-4 w-full bg-[#1DB954] text-black rounded-xl py-2.5 text-sm font-semibold hover:brightness-110">Enviar</button>
+            <button type="button" onClick={() => { sendFeedback('report', feedbackText); setFeedbackText(''); setShowFeedback(false); }} className="mt-4 w-full bg-[#1DB954] text-black rounded-xl py-2.5 text-sm font-semibold hover:brightness-110">Enviar</button>
           </div>
         </div>
       )}

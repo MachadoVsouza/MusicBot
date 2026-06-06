@@ -5,12 +5,14 @@
 - [ ] Refresh token rotation (token Spotify renova, JWT não tem refresh)
 - [ ] Rate limiting em rotas de login/cadastro
 - [x] Validação de força de senha (mínimo 6 caracteres)
+- [ ] `_is_token_valid()` faz GET /v1/me a cada requisição (consome rate limit Spotify)
 
 ## API
 - [ ] CORS configurado corretamente
 - [ ] Input sanitization em todas as rotas
 - [ ] Rate limiting em endpoints públicos
 - [x] Validação de tokens expirados (flask-jwt-extended)
+- [x] Rotas protegidas por `@require_auth`
 
 ## Chat/RAG
 - [ ] Sanitização de input do usuário
@@ -36,3 +38,12 @@
 - [x] Batch processing com rollback em caso de erro
 - [x] Lazy loading thread-safe com Lock
 - [ ] Sanitização de conteúdo de URLs/PDFs extraídos
+
+## MCP Server
+- [ ] Token fixo via env var (expira em 1h, sem refresh)
+- [ ] Não roda autenticado dentro do mesmo contexto que o Flask
+
+## Cloudflare Tunnel
+- [x] Container isolado com profile (só roda quando explicitamente iniciado)
+- [ ] Redirect URI precisa ser adicionado manualmente no Dashboard do Spotify
+- [ ] Link público expira quando container morre

@@ -3,6 +3,8 @@ from flask import Blueprint, request, Response, stream_with_context
 from .service import ChatService
 from app.core.auth_guard import require_auth
 from app.core.http import success, error, not_found
+from app.database.connection import get_session
+from app.database.models import Feedback, FeedbackTipo, Resposta
 
 chat_bp = Blueprint("chat", __name__, url_prefix="/chat")
 
@@ -160,6 +162,45 @@ def stream_mensagem(token: str, usuario_id: str, chat_id: int):
             "X-Accel-Buffering":  "no",
         },
     )
+
+
+# ── Feedback ────────────────────────────────────────────────────────────────────
+
+@chat_bp.post("/feedback")
+@require_auth
+def enviar_feedback(token: str, usuario_id: str):
+    """
+    Envia feedback (like, dislike, report) para uma resposta.
+    Body: {"resposta_id": int, "tipo": "like"|"dislike"|"report", "comentario": "..."}
+    """
+    body        = request.get_json(silent=True) or {}
+    resposta_id = body.get("resposta_id")
+    tipo_str    = body.get("tipo")
+    comentario  = (body.get("comentario") or "").strip()
+
+    if not resposta_id or not tipo_str:
+        return error("Campos 'resposta_id' e 'tipo' obrigatórios", 400)
+
+    if tipo_str not in ("like", "dislike", "report"):
+        return error("Tipo inválido. Use: like, dislike, report", 400)
+
+    db = get_session()
+    try:
+        resposta = db.get(Resposta, resposta_id)
+        if not resposta:
+            return not_found("Resposta não encontrada")
+
+        fb = Feedback(
+            resposta_id=resposta_id,
+            usuario_id=usuario_id,
+            tipo=FeedbackTipo[tipo_str],
+            comentario=comentario or None,
+        )
+        db.add(fb)
+        db.commit()
+        return success({"id": fb.id, "tipo": fb.tipo.value}, 201)
+    finally:
+        db.close()
 
 
 # ── Export do histórico ───────────────────────────────────────────────────────

@@ -27,17 +27,19 @@ def create_app() -> Flask:
 
 
 def _register_blueprints(app: Flask) -> None:
-    from .auth.blueprint      import auth_bp
-    from .spotify.blueprint   import spotify_bp
-    from .chat.blueprint      import chat_bp
-    from .rag.blueprint       import rag_bp
-    from .dashboard.blueprint import dashboard_bp
+    from .auth.blueprint        import auth_bp
+    from .spotify.blueprint     import spotify_bp
+    from .chat.blueprint        import chat_bp
+    from .rag.blueprint         import rag_bp
+    from .dashboard.blueprint   import dashboard_bp
+    from .llm_provider.blueprint import llm_provider_bp
 
-    app.register_blueprint(auth_bp)       # /auth/login, /auth/callback, /auth/logout
-    app.register_blueprint(spotify_bp)    # /profile, /playlists, /recently-played ...
-    app.register_blueprint(chat_bp)       # /chat/, /chat/<id>/message
-    app.register_blueprint(rag_bp)        # /rag/, /rag/<id>/message
-    app.register_blueprint(dashboard_bp)  # /dashboard/metrics, /chart, /feedbacks, /reviews
+    app.register_blueprint(auth_bp)          # /auth/login, /auth/callback, /auth/logout
+    app.register_blueprint(spotify_bp)       # /spotify/profile, /spotify/playlists, ...
+    app.register_blueprint(chat_bp)          # /chat/, /chat/<id>/message
+    app.register_blueprint(rag_bp)           # /rag/, /rag/<id>/message
+    app.register_blueprint(dashboard_bp)     # /dashboard/metrics, /chart, /feedbacks
+    app.register_blueprint(llm_provider_bp)  # /llm-provider
 
 
 def _register_error_handlers(app: Flask) -> None:

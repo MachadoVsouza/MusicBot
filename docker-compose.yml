@@ -76,6 +76,15 @@ services:
       OLLAMA_BASE_URL:       http://ollama:11434
       OLLAMA_MODEL:          gemma4:e4b
       OLLAMA_KEEP_ALIVE:     10m
+      # IFES Colatina
+      LLM_PROVIDER:          ${LLM_PROVIDER:-local}
+      IFES_BASE_URL:         ${IFES_BASE_URL:-https://workstations.chatbotintegracar.online}
+      IFES_API_KEY:          ${IFES_API_KEY}
+      IFES_MODEL:            ${IFES_MODEL:-gemma3:12b}
+      IFES_EMBEDDING_MODEL:   ${IFES_EMBEDDING_MODEL:-embeddinggemma:latest}
+      # LangChain OpenAI precisa da API Key explicitamente para ChatOpenAI
+      OPENAI_API_KEY:        ${IFES_API_KEY}
+      OPENAI_BASE_URL:       ${IFES_BASE_URL:-https://workstations.chatbotintegracar.online}/v1
     ports:
       - "5000:5000"
     depends_on:
@@ -92,6 +101,15 @@ services:
       - "8080:80"
     depends_on:
       - backend
+
+  tunnel:
+    build: ./tunnel
+    container_name: MusicBot_Tunnel
+    restart: unless-stopped
+    depends_on:
+      - frontend
+    profiles:
+      - tunnel
 
 volumes:
   db_data:

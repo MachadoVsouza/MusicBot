@@ -3,7 +3,9 @@ import json
 from .repository import ChatRepository
 from app.langchain.repository import OllamaRepository
 from app.rag.service import RagService
+from app.rag.sintese import RagSintese
 from app.agents.service import run_agent, run_agent_stream
+from app.chat.memory import get_chat_history, get_history_messages
 
 SYSTEM_PROMPT = """Você é o MusicBot, um assistente musical inteligente e apaixonado por música.
 
@@ -47,6 +49,7 @@ class ChatService:
         self.chat_repo = ChatRepository()
         self.llm_repo  = OllamaRepository()
         self.rag_svc   = RagService()
+        self.rag_sintese = RagSintese()
 
     def iniciar_chat(self, spotify_id: str, titulo: str = "Nova conversa") -> dict:
         self.chat_repo.get_or_create_usuario(spotify_id)
@@ -86,19 +89,20 @@ class ChatService:
             midia             = resultado_agent.get("midia")
             usou_agent        = True
         else:
-            fragmentos = self.rag_svc.buscar_contexto(mensagem, limite=3)
-            usou_rag   = len(fragmentos) > 0
+            # Usa RAG com síntese — respeita o provider do usuário
+            resultado_sintese = self.rag_sintese.consultar(mensagem, limite=3, spotify_id=spotify_id)
+            usou_rag = resultado_sintese["usou_rag"]
+            fragmentos = resultado_sintese["fragmentos"]
 
-            if usou_rag:
-                contexto      = "\n\n---\n\n".join(f["conteudo"][:300] for f in fragmentos)
-                system_prompt = SYSTEM_PROMPT_RAG.format(contexto=contexto)
+            if usou_rag and resultado_sintese["resposta"]:
+                conteudo_resposta = resultado_sintese["resposta"]
             else:
                 system_prompt = SYSTEM_PROMPT
-
-            conteudo_resposta = self.llm_repo.gerar_resposta(
-                historico     = historico,
-                system_prompt = system_prompt,
-            )
+                conteudo_resposta = self.llm_repo.gerar_resposta(
+                    historico     = historico,
+                    system_prompt = system_prompt,
+                    spotify_id    = spotify_id,
+                )
 
         if not conteudo_resposta:
             conteudo_resposta = "Desculpe, não consegui processar sua mensagem. Tente novamente."
@@ -175,7 +179,7 @@ class ChatService:
                 "tool_calls":   None,  # será preenchido pelo after_stream
             }
 
-        # RAG
+        # RAG — respeita o provider do usuário
         fragmentos = self.rag_svc.buscar_contexto(mensagem, limite=3)
         usou_rag   = len(fragmentos) > 0
 
@@ -188,7 +192,7 @@ class ChatService:
         chunks_gerados = []
 
         def _stream_e_acumula():
-            for chunk in self.llm_repo.gerar_stream(historico, system_prompt):
+            for chunk in self.llm_repo.gerar_stream(historico, system_prompt, spotify_id=spotify_id):
                 chunks_gerados.append(chunk)
                 yield chunk
 

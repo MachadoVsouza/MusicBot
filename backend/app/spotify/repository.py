@@ -29,6 +29,17 @@ class SpotifyRepository:
         results = self._sp.search(q=query, type="track", limit=limit)
         return results["tracks"]["items"]
 
+    def search_artist(self, nome: str) -> dict | None:
+        """Busca um artista pelo nome."""
+        results = self._sp.search(q=nome, type="artist", limit=1)
+        items = results["artists"]["items"]
+        return items[0] if items else None
+
+    def get_artist_top_tracks(self, artist_id: str, market: str = "BR") -> list:
+        """Retorna as top tracks de um artista."""
+        results = self._sp.artist_top_tracks(artist_id, country=market)
+        return results.get("tracks", [])
+
     def create_playlist(self, user_id: str, name: str, description: str = "", public: bool = True) -> dict:
         return self._sp.user_playlist_create(
             user=user_id,
@@ -43,7 +54,6 @@ class SpotifyRepository:
     # ── Playback ──────────────────────────────────────────────────────────────
 
     def get_available_devices(self) -> list[dict]:
-        """Retorna dispositivos disponíveis para playback."""
         devices = self._sp.devices()
         return devices.get("devices", [])
 
@@ -55,12 +65,6 @@ class SpotifyRepository:
         offset: dict | None = None,
         position_ms: int = 0,
     ) -> bool:
-        """
-        Inicia playback em um dispositivo.
-        - device_id: None = usa o dispositivo ativo
-        - uris: lista de tracks URIs para tocar
-        - context_uri: URI de playlist/album/artist
-        """
         try:
             self._sp.start_playback(
                 device_id=device_id,
@@ -72,12 +76,10 @@ class SpotifyRepository:
             return True
         except spotipy.SpotifyException as e:
             if e.http_status == 404:
-                # Nenhum dispositivo ativo
                 return False
             raise
 
     def pause_playback(self, device_id: str | None = None) -> bool:
-        """Pausa o playback."""
         try:
             self._sp.pause_playback(device_id=device_id)
             return True
@@ -85,7 +87,6 @@ class SpotifyRepository:
             return False
 
     def next_track(self, device_id: str | None = None) -> bool:
-        """Próxima faixa."""
         try:
             self._sp.next_track(device_id=device_id)
             return True
@@ -93,7 +94,6 @@ class SpotifyRepository:
             return False
 
     def previous_track(self, device_id: str | None = None) -> bool:
-        """Faixa anterior."""
         try:
             self._sp.previous_track(device_id=device_id)
             return True
@@ -101,14 +101,30 @@ class SpotifyRepository:
             return False
 
     def get_current_playback(self) -> dict | None:
-        """Retorna o estado atual do playback."""
         try:
             return self._sp.current_playback()
         except spotipy.SpotifyException:
             return None
 
+    def transfer_playback(self, device_id: str, force_play: bool = True) -> bool:
+        """Transfere o playback para um dispositivo específico."""
+        try:
+            self._sp.transfer_playback(device_id, force_play=force_play)
+            return True
+        except spotipy.SpotifyException:
+            return False
+
+    def add_to_queue(self, track_uri: str, device_id: str | None = None) -> bool:
+        """Adiciona uma track à fila de playback."""
+        try:
+            self._sp.add_to_queue(track_uri, device_id=device_id)
+            return True
+        except spotipy.SpotifyException as e:
+            if e.http_status == 404:
+                return False
+            raise
+
     def seek_track(self, position_ms: int, device_id: str | None = None) -> bool:
-        """Pula para uma posição na faixa atual."""
         try:
             self._sp.seek_track(position_ms, device_id=device_id)
             return True
@@ -116,7 +132,6 @@ class SpotifyRepository:
             return False
 
     def shuffle(self, state: bool, device_id: str | None = None) -> bool:
-        """Ativa/desativa shuffle."""
         try:
             self._sp.shuffle(state, device_id=device_id)
             return True
@@ -124,7 +139,6 @@ class SpotifyRepository:
             return False
 
     def repeat(self, state: str, device_id: str | None = None) -> bool:
-        """Define modo de repetição: 'track', 'context' ou 'off'."""
         try:
             self._sp.repeat(state, device_id=device_id)
             return True
