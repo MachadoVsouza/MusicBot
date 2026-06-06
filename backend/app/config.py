@@ -49,10 +49,19 @@ class Config:
         "postgresql://admin:admin@localhost:5432/MusicBot"
     )
 
-    # Ollama
+    # Provedor LLM ativo: "local" | "ifes"
+    LLM_PROVIDER = os.getenv("LLM_PROVIDER", "local")
+
+    # Ollama — Local (para agente Spotify com latência baixa)
     OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
     OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen:4b")
     OLLAMA_KEEP_ALIVE = os.getenv("OLLAMA_KEEP_ALIVE", "30s")  # -1 = nunca descarrega
+
+    # IFES Colatina — Workstations (para LLM e embeddings)
+    IFES_BASE_URL = os.getenv("IFES_BASE_URL", "https://workstations.chatbotintegracar.online")
+    IFES_API_KEY  = os.getenv("IFES_API_KEY", "")
+    IFES_MODEL    = os.getenv("IFES_MODEL", "gemma3:12b")
+    IFES_EMBEDDING_MODEL = os.getenv("IFES_EMBEDDING_MODEL", "nomic-embed-text")
 
 
 class DevelopmentConfig(Config):

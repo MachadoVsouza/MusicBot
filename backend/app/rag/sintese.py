@@ -29,10 +29,11 @@ class RagSintese:
     def __init__(self):
         self.repo = RagRepository()
 
-    def consultar(self, pergunta: str, limite: int = 5) -> dict:
+    def consultar(self, pergunta: str, limite: int = 5, spotify_id: str = None) -> dict:
         """
         Busca fragmentos similares e gera uma resposta sintetizada.
         Retorna a resposta + as fontes utilizadas.
+        Se spotify_id for informado, respeita o provider do usuário.
         """
         fragmentos = self.repo.buscar_similares(pergunta, limite)
         if not fragmentos:
@@ -46,7 +47,11 @@ class RagSintese:
         contexto = "\n\n---\n\n".join(f.conteudo for f in fragmentos)
         system_prompt = SYSTEM_PROMPT_SINTESE.format(context=contexto)
 
-        llm = get_llm()
+        if spotify_id:
+            from app.llm_provider.service import get_llm_for_sintese
+            llm = get_llm_for_sintese(spotify_id)
+        else:
+            llm = get_llm()
         try:
             messages = [
                 SystemMessage(content=system_prompt),

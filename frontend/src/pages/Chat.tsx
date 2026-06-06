@@ -108,6 +108,8 @@ const Chat = () => {
   const [selectedSource, setSelectedSource] = useState<Source | null>(null);
   const [feedbackText, setFeedbackText] = useState('');
   const [preferences, setPreferences] = useState({ audioEnabled: true, compactMode: false });
+  const [llmProvider, setLlmProvider] = useState<'local' | 'ifes'>('local');
+  const [providerLoading, setProviderLoading] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef    = useRef<HTMLTextAreaElement>(null);
@@ -137,6 +139,32 @@ const Chat = () => {
     };
     loadChats();
   }, []);
+
+  // Carrega o provedor LLM do usuário
+  useEffect(() => {
+    const loadProvider = async () => {
+      try {
+        const res = await authFetch(`${API}/llm-provider/`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.provider) setLlmProvider(data.provider);
+      } catch { }
+    };
+    if (user) loadProvider();
+  }, [user]);
+
+  const toggleProvider = async () => {
+    const novo = llmProvider === 'local' ? 'ifes' : 'local';
+    setProviderLoading(true);
+    try {
+      const res = await authFetch(`${API}/llm-provider/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ provider: novo }),
+      });
+      if (res.ok) setLlmProvider(novo);
+    } catch { } finally { setProviderLoading(false); }
+  };
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, isTyping]);
   useEffect(() => { resizeTextarea(); }, [inputValue]);
@@ -456,7 +484,20 @@ const Chat = () => {
             <button type="button" onClick={handleNextConversation} disabled={!canNavigateConversations} className="p-1 text-slate hover:text-off-white transition-colors disabled:opacity-30"><ChevronRight size={18} /></button>
           </div>
 
-          <div className="relative justify-self-end">
+          {/* Toggle de provedor LLM */}
+          <div className="flex items-center gap-2 justify-self-end">
+            <button
+              type="button"
+              onClick={toggleProvider}
+              disabled={providerLoading}
+              className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none ${llmProvider === 'ifes' ? 'bg-[#1DB954]' : 'bg-[#3E3E3E]'}`}
+              title={`LLM: ${llmProvider === 'ifes' ? 'IFES Colatina (gemma3:12b)' : 'Local (qwen:4b)'}`}
+            >
+              <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${llmProvider === 'ifes' ? 'translate-x-6' : 'translate-x-1'}`} />
+            </button>
+            <span className="text-[10px] text-slate font-mono hidden sm:inline">
+              {llmProvider === 'ifes' ? 'IFES' : 'Local'}
+            </span>
             <button type="button" onClick={() => setShowSettings((p) => !p)}>
               <img src={userAvatar} alt={userAlt} className="w-9 h-9 rounded-full border-2 border-[#1DB954] hover:scale-105 transition-transform object-cover"
                 onError={(e) => { (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user?.name ?? 'U')}`; }} />

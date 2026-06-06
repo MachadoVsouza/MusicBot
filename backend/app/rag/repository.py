@@ -93,8 +93,8 @@ class RagRepository:
 
     # ── Fragmento ─────────────────────────────────────────────────────────────
 
-    def verificar_duplicata(self, conteudo: str) -> bool:
-        embedding = get_embedding(conteudo)
+    def verificar_duplicata(self, conteudo: str, spotify_id: str = None) -> bool:
+        embedding = get_embedding(conteudo, spotify_id)
         if not embedding:
             return False
         db = get_session()

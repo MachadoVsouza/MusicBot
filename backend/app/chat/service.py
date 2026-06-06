@@ -89,8 +89,8 @@ class ChatService:
             midia             = resultado_agent.get("midia")
             usou_agent        = True
         else:
-            # Usa RAG com síntese via LangChain (create_stuff_documents_chain)
-            resultado_sintese = self.rag_sintese.consultar(mensagem, limite=3)
+            # Usa RAG com síntese — respeita o provider do usuário
+            resultado_sintese = self.rag_sintese.consultar(mensagem, limite=3, spotify_id=spotify_id)
             usou_rag = resultado_sintese["usou_rag"]
             fragmentos = resultado_sintese["fragmentos"]
 
@@ -101,6 +101,7 @@ class ChatService:
                 conteudo_resposta = self.llm_repo.gerar_resposta(
                     historico     = historico,
                     system_prompt = system_prompt,
+                    spotify_id    = spotify_id,
                 )
 
         if not conteudo_resposta:
@@ -178,7 +179,7 @@ class ChatService:
                 "tool_calls":   None,  # será preenchido pelo after_stream
             }
 
-        # RAG
+        # RAG — respeita o provider do usuário
         fragmentos = self.rag_svc.buscar_contexto(mensagem, limite=3)
         usou_rag   = len(fragmentos) > 0
 
@@ -191,7 +192,7 @@ class ChatService:
         chunks_gerados = []
 
         def _stream_e_acumula():
-            for chunk in self.llm_repo.gerar_stream(historico, system_prompt):
+            for chunk in self.llm_repo.gerar_stream(historico, system_prompt, spotify_id=spotify_id):
                 chunks_gerados.append(chunk)
                 yield chunk
 
