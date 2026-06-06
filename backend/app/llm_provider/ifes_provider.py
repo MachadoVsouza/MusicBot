@@ -33,13 +33,17 @@ def get_embeddings(texts: list[str], text: str = None) -> list[list[float]] | No
     for t in texts:
         try:
             resp = requests.post(
-                f"{base_url}/api/embeddings",
+                f"{base_url}/api/embed",
                 headers={"Authorization": f"Bearer {api_key}"},
-                json={"model": model, "prompt": t},
+                json={"model": model, "input": t},
                 timeout=30,
             )
             resp.raise_for_status()
             emb = resp.json().get("embedding")
+            if emb is None:
+                emb_data = resp.json().get("embeddings")
+                if emb_data and len(emb_data) > 0:
+                    emb = emb_data[0]
             if emb is None:
                 return None
             results.append(emb)

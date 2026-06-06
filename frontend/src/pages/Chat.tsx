@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Bug, ChevronLeft, ChevronRight, Download, ExternalLink,
   MessageSquare, Music, Paperclip, Pause, Play, Settings,
-  Square, ThumbsDown, ThumbsUp, UserCircle, X,
+  Square, Terminal, ThumbsDown, ThumbsUp, UserCircle, X,
 } from 'lucide-react';
 import { useAuth, authFetch } from '@/contexts/AuthContext';
 import MusicbotLogo from '@/components/MusicbotLogo';
@@ -20,6 +20,22 @@ interface ChatApiResponse { id: string | number; titulo: string; updated_at: str
 
 const DEFAULT_BOT_REPLY = 'No momento não foi possível gerar uma resposta. Tente novamente mais tarde.';
 const fmt = (iso?: string) => new Date(iso ?? Date.now()).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+// ── Comandos disponíveis ────────────────────────────────────────────────────────
+const COMMANDS = [
+  { cmd: 'Buscar música/artista', desc: '"busca tal música" ou "procura artista X"' },
+  { cmd: 'Tocar música', desc: '"toca música X" ou "play X de Y"' },
+  { cmd: 'Tocar playlist', desc: '"toca minha playlist tal" ou "play playlist X"' },
+  { cmd: 'Pausar/Voltar', desc: '"pausa" ou "para a música"' },
+  { cmd: 'Próxima/Anterior', desc: '"próxima música" ou "volta pra anterior"' },
+  { cmd: 'Adicionar na fila', desc: '"adiciona X na fila" ou "bota X depois dessa"' },
+  { cmd: 'Listar playlists', desc: '"minhas playlists" ou "mostra minhas playlists"' },
+  { cmd: 'Músicas curtidas', desc: '"minhas curtidas" ou "favoritos"' },
+  { cmd: 'Músicas recentes', desc: '"músicas recentes" ou "últimas tocadas"' },
+  { cmd: 'Top músicas/artistas', desc: '"meus top artistas" ou "mais tocadas"' },
+  { cmd: 'Trocar dispositivo', desc: '"toca no celular" ou "muda pro notebook"' },
+  { cmd: 'Informações gerais', desc: '"o que sabe sobre X?" (usa RAG + LLM)' },
+];
 
 // ── Mini Player ───────────────────────────────────────────────────────────────
 const MiniPlayer = ({ midia }: { midia: Midia }) => {
@@ -105,6 +121,7 @@ const Chat = () => {
   const [showFeedback, setShowFeedback] = useState(false);
   const [showPreferences, setShowPreferences] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const [showCommands, setShowCommands] = useState(false);
   const [selectedSource, setSelectedSource] = useState<Source | null>(null);
   const [feedbackText, setFeedbackText] = useState('');
   const [preferences, setPreferences] = useState({ audioEnabled: true, compactMode: false });
@@ -462,6 +479,7 @@ const Chat = () => {
           <div className="flex items-center gap-1 sm:gap-2 justify-self-start">
             <button type="button" onClick={() => { const novo = conversationRating === 'positive' ? null : 'positive'; setConversationRating(novo); if (novo === 'positive') sendFeedback('like'); }} className={`p-2 rounded-lg transition-all duration-200 ${conversationRating === 'positive' ? 'bg-[#1ED76020] text-[#1ED760]' : 'text-slate hover:text-off-white'}`}><ThumbsUp size={18} /></button>
             <button type="button" onClick={() => { const novo = conversationRating === 'negative' ? null : 'negative'; setConversationRating(novo); if (novo === 'negative') sendFeedback('dislike'); }} className={`p-2 rounded-lg transition-all duration-200 ${conversationRating === 'negative' ? 'bg-[#E9142920] text-[#E91429]' : 'text-slate hover:text-off-white'}`}><ThumbsDown size={18} /></button>
+            <button type="button" onClick={() => setShowCommands(true)} className="p-2 rounded-lg text-slate hover:text-off-white transition-colors" title="Comandos disponíveis"><Terminal size={18} /></button>
             <button type="button" onClick={() => setShowFeedback(true)} className="p-2 rounded-lg text-slate hover:text-off-white transition-colors"><Bug size={18} /></button>
             <div className="relative">
               <button type="button" onClick={() => setShowExportMenu((p) => !p)} className="p-2 rounded-lg text-slate hover:text-off-white transition-colors"><Download size={18} /></button>
@@ -526,6 +544,31 @@ const Chat = () => {
             </div>
             {historyContent}
             <button type="button" onClick={handleNewConversation} className="mt-4 w-full bg-[#1DB954] text-black rounded-xl py-2.5 text-sm font-semibold hover:brightness-110">Nova conversa</button>
+          </div>
+        </div>
+      )}
+
+      {showCommands && (
+        <div className="fixed inset-0 bg-black/70 z-30 flex items-end sm:items-center justify-center p-4">
+          <div className="bg-[#181818] border border-[#282828] rounded-2xl w-full max-w-xl p-4 sm:p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-off-white font-display text-lg flex items-center gap-2"><Terminal size={20} className="text-[#1DB954]" /> Comandos disponíveis</h3>
+              <button type="button" onClick={() => setShowCommands(false)} className="text-slate hover:text-off-white"><X size={18} /></button>
+            </div>
+            <div className="space-y-1 max-h-80 overflow-auto">
+              {COMMANDS.map((item, i) => (
+                <div key={i} className="flex items-start gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 transition-colors">
+                  <span className="text-[#1DB954] font-mono text-sm mt-0.5">▸</span>
+                  <div>
+                    <p className="text-off-white text-sm font-medium">{item.cmd}</p>
+                    <p className="text-slate text-xs mt-0.5">Exemplo: <span className="text-off-white/70">{item.desc}</span></p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 pt-3 border-t border-white/10">
+              <p className="text-slate text-xs">💡 O MusicBot detecta automaticamente quando você quer usar o Spotify e executa a ação diretamente.</p>
+            </div>
           </div>
         </div>
       )}
