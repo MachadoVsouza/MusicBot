@@ -1,5 +1,24 @@
 # Bugs Corrigidos
 
+## [07/06/2026] - Sessão 3: User Roles, OAuth Session, Login Custom
+
+### 11. Sessão Flask inválida no callback OAuth (state_invalido)
+- **Arquivos**: `backend/app/config.py`, `frontend/nginx.conf`
+- **Problema**: `SESSION_COOKIE_SAMESITE="None"` com `SESSION_COOKIE_SECURE=False` (HTTP) é inválido no Chrome — cookie rejeitado. Além disso, nginx não repassava `Set-Cookie` do backend.
+- **Solução**: `SameSite="Lax"` (permite GET cross-site), `proxy_pass_header Set-Cookie`, `proxy_cookie_path / /`, `X-Forwarded-Host $http_host`
+- **Impacto**: Login com Spotify quebrava 100% das vezes com erro `state_invalido`
+
+### 12. Login com email/senha não carregava perfil corretamente
+- **Arquivo**: `frontend/src/pages/Entrar.tsx`
+- **Problema**: Usava `loginWithProfile` (fluxo do callback Spotify) em vez de `loginWithToken` (fluxo de login custom). Manipulava localStorage e perfil Spotify manualmente, sem passar pelo AuthContext.
+- **Solução**: Substituído `loginWithProfile` por `loginWithToken` — que valida JWT, obtém role/super_usuario_id e carrega perfil Spotify automaticamente
+- **Impacto**: Login com email/senha não populava o contexto de usuário, redirecionava sem perfil
+
+### 13. super_usuario_id hardcoded no BaseConhecimento.tsx
+- **Arquivo**: `frontend/src/pages/BaseConhecimento.tsx`
+- **Problema**: `super_usuario_id: 1` fixo no submit de documentos. Se não existir SuperUsuario com ID 1 no banco, falha.
+- **Solução**: Usa `user.superUsuarioId` do AuthContext (obtido via `/api/auth/me`)
+
 ## [05/06/2026] - Sessão 2: Playback, Streaming e JWT
 
 ### 1. Spotify blueprint sem url_prefix (CAUSA RAIZ de Profile quebrado)

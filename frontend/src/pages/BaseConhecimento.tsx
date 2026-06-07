@@ -5,15 +5,15 @@ import {
   ArrowLeft,
   Check,
   FileText,
-  Link as LinkIcon,
   Loader2,
   Plus,
   Search,
   Trash2,
   X,
   AlertTriangle,
+  ShieldOff,
 } from 'lucide-react';
-import { authFetch } from '@/contexts/AuthContext';
+import { authFetch, useAuth } from '@/contexts/AuthContext';
 
 const API = '/api';
 
@@ -42,6 +42,7 @@ function fmtDate(iso?: string) {
 
 const BaseConhecimento = () => {
   const navigate = useNavigate();
+  const { user, isModerator } = useAuth();
   const [documentos, setDocumentos] = useState<Documento[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -61,6 +62,8 @@ const BaseConhecimento = () => {
   const [rejeitarId, setRejeitarId] = useState<number | null>(null);
   const [rejeitarMotivo, setRejeitarMotivo] = useState('');
 
+  const superUsuarioId = user?.superUsuarioId;
+
   const carregarDocs = async () => {
     setLoading(true);
     try {
@@ -71,7 +74,11 @@ const BaseConhecimento = () => {
         const data = await res.json();
         setDocumentos(data.data?.documentos ?? data.documentos ?? []);
       }
-    } catch { } finally { setLoading(false); }
+    } catch {
+      /* falha silenciosa */
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { carregarDocs(); }, [filterStatus]);
@@ -81,6 +88,12 @@ const BaseConhecimento = () => {
     e.preventDefault();
     setFormErro('');
     setFormEnviando(true);
+
+    if (!superUsuarioId) {
+      setFormErro('Você não tem permissão para enviar documentos. Apenas artistas/bandas (SuperUsuários) podem.');
+      setFormEnviando(false);
+      return;
+    }
 
     try {
       if (formTipo === 'txt' && !formConteudo.trim()) {
@@ -94,19 +107,13 @@ const BaseConhecimento = () => {
         return;
       }
 
-      const body: Record<string, any> = {
-        titulo: formTitulo || 'Documento sem título',
-        tipo: formTipo,
-        super_usuario_id: 1,
-      };
+      const superId = String(superUsuarioId);
 
-      if (formTipo === 'txt') body.conteudo = formConteudo;
-      if (formTipo === 'link') body.url = formUrl;
       if (formTipo === 'pdf' && formArquivo) {
         const fd = new FormData();
         fd.append('arquivo', formArquivo);
         fd.append('titulo', formTitulo || formArquivo.name);
-        fd.append('super_usuario_id', '1');
+        fd.append('super_usuario_id', superId);
         const r = await authFetch(`${API}/rag/documentos`, { method: 'POST', body: fd });
         if (r.ok) {
           setShowModal(false);
@@ -119,6 +126,15 @@ const BaseConhecimento = () => {
         setFormEnviando(false);
         return;
       }
+
+      const body: Record<string, unknown> = {
+        titulo: formTitulo || 'Documento sem título',
+        tipo: formTipo,
+        super_usuario_id: superUsuarioId,
+      };
+
+      if (formTipo === 'txt') body.conteudo = formConteudo;
+      if (formTipo === 'link') body.url = formUrl;
 
       const res = await authFetch(`${API}/rag/documentos`, {
         method: 'POST',
@@ -134,8 +150,11 @@ const BaseConhecimento = () => {
         const d = await res.json();
         setFormErro(d.message || d.error || 'Erro ao enviar');
       }
-    } catch { setFormErro('Erro de conexão'); }
-    finally { setFormEnviando(false); }
+    } catch {
+      setFormErro('Erro de conexão');
+    } finally {
+      setFormEnviando(false);
+    }
   };
 
   const resetForm = () => {
@@ -152,7 +171,9 @@ const BaseConhecimento = () => {
     try {
       await authFetch(`${API}/rag/documentos/${id}/aprovar`, { method: 'POST' });
       carregarDocs();
-    } catch { }
+    } catch {
+      /* falha silenciosa */
+    }
   };
 
   const handleRejeitar = async () => {
@@ -166,15 +187,45 @@ const BaseConhecimento = () => {
       setRejeitarId(null);
       setRejeitarMotivo('');
       carregarDocs();
-    } catch { }
+    } catch {
+      /* falha silenciosa */
+    }
   };
 
   const handleDeletar = async (id: number) => {
     try {
       await authFetch(`${API}/rag/documentos/${id}`, { method: 'DELETE' });
       carregarDocs();
-    } catch { }
+    } catch {
+      /* falha silenciosa */
+    }
   };
+
+  // ── Se não for moderador, mostra tela de acesso restrito ──────────────────
+  if (!isModerator) {
+    return (
+      <div className="min-h-screen bg-midnight flex items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-[#181818] border border-[#282828] rounded-card p-8 text-center max-w-md w-full"
+        >
+          <ShieldOff size={48} className="mx-auto mb-4 text-[#E91429]" />
+          <h1 className="font-display text-xl font-bold text-off-white mb-2">Acesso Restrito</h1>
+          <p className="text-slate text-sm mb-6">
+            A Base de Conhecimento é exclusiva para artistas e bandas verificados no Spotify.
+            Se você é um artista, faça login com sua conta de artista no Spotify para acessar.
+          </p>
+          <button
+            onClick={() => navigate('/chat')}
+            className="inline-flex items-center gap-2 rounded-xl bg-[#1DB954] px-5 py-2.5 text-sm font-semibold text-white hover:brightness-110 transition-all"
+          >
+            <ArrowLeft size={16} /> Ir para o Chat
+          </button>
+        </motion.div>
+      </div>
+    );
+  }
 
   // ── Render ────────────────────────────────────────────────────────────────
   const filtered = documentos.filter(d =>

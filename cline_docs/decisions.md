@@ -21,6 +21,9 @@
 - Frontend salva JWT no `localStorage`, `authFetch` injeta `Authorization: Bearer`
 - OAuth2 Spotify para integração musical
 - Guards de autenticação via decorator (`@require_auth`)
+- Sessão Flask com `SameSite=Lax` + nginx `proxy_pass_header Set-Cookie` para resolver `state_invalido`
+- **Role-based access**: `/api/auth/me` retorna `role` e `super_usuario_id`; detecção automática de artista Spotify (`type: "artist"`) → cria SuperUsuario
+- **Moderadores fixos**: `FIXED_MODERATOR_IDS` no config para developers
 - **Problema conhecido**: `_is_token_valid()` faz GET /v1/me a cada requisição, consumindo rate limit
 
 ## Frontend

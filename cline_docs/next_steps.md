@@ -53,21 +53,25 @@
 - [x] Base de conhecimento (conectada ao backend)
 - [x] Dashboard com métricas
 - [x] Auth (login, callback, registro)
+- [x] Role-based access: user vs moderator (artista Spotify)
+- [x] Proteção de Dashboard e Base de Conhecimento (só moderadores)
+- [x] Correção login com email/senha (Entrar.tsx → loginWithToken)
+- [x] Correção OAuth state_invalido (nginx + SameSite=Lax)
 
 ### Extras
 - [x] MCP Server (13 tools do Spotify)
 - [x] Cloudflare Tunnel (container Docker com profile)
 - [x] Scopes de playback adicionados
+- [x] Moderadores fixos (FIXED_MODERATOR_IDS no config)
 
 ---
 
 ## ❌ Pendente
 
 ### 🔴 Prioridade Alta
-1. **Conectar Chat.tsx com feedback backend**
-   - Botão like/dislike → `POST /api/chat/feedback`
-   - Modal report → `POST /api/chat/feedback` com comentário
-   - Guardar `respostaId` nas mensagens
+1. **Testar auto-detecção de artista Spotify**
+   - Fazer login com conta artista Spotify real
+   - Validar criação automática de SuperUsuario
 
 2. **Prune do Ollama / servidor IFES**
    - Modelo gemma4 pesado

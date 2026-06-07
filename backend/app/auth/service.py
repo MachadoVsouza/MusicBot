@@ -105,10 +105,34 @@ class AuthService:
         usuario = self.repo.get_usuario_by_spotify_id(spotify_id)
         if usuario:
             self.repo.update_user_spotify_tokens(spotify_id, access_token, refresh_token)
+            # Verifica se é artista Spotify ou ID fixo → garante SuperUsuario
+            self._verificar_e_criar_super_usuario(spotify_id, profile)
             self.repo.clear_temp()
             return {"flow": "login", "spotify_id": spotify_id, "profile": profile}
         else:
+            # Salva dados do perfil na sessão temporária para o registro
+            self.repo.save_spotify_profile_temp(
+                spotify_type=profile.get("type", "user"),
+                display_name=profile.get("display_name", ""),
+            )
             return {"flow": "register", "spotify_id": spotify_id, "profile": profile}
+
+    def _verificar_e_criar_super_usuario(self, spotify_id: str, profile: dict) -> None:
+        """Se o perfil Spotify for do tipo 'artist' OU for um ID fixo de super usuário,
+        cria automaticamente um SuperUsuario e vincula como moderador administrador."""
+        tipo_conta = profile.get("type")  # "user" ou "artist"
+        is_fixed = spotify_id in current_app.config.get("SUPER_USER_IDS", [])
+        if tipo_conta != "artist" and not is_fixed:
+            return
+
+        moderador = self.repo.get_moderador_by_usuario_id(spotify_id)
+        if moderador:
+            return  # Já é moderador
+
+        nome = profile.get("display_name") or profile.get("id") or "Artista"
+        self.repo.criar_super_usuario_e_moderador(spotify_id, nome)
+        motivo = "ID fixo" if is_fixed else f"tipo Spotify: {tipo_conta}"
+        print(f"[INFO] SuperUsuario criado automaticamente para {spotify_id} ({nome}) - {motivo}")
 
     # ── Registration ──────────────────────────────────────────────────────────
 
@@ -133,6 +157,15 @@ class AuthService:
                 spotify_token=access_token,
                 spotify_refresh_token=refresh_token,
             )
+            # Verifica SuperUsuario para IDs fixos ou artistas após registro
+            profile_info = self.repo.get_spotify_profile_temp()
+            if profile_info:
+                profile = {
+                    "type": profile_info["type"],
+                    "display_name": profile_info["display_name"],
+                    "id": spotify_id,
+                }
+                self._verificar_e_criar_super_usuario(spotify_id, profile)
             self.repo.clear_temp()
             return {"success": True, "spotify_id": usuario.spotify_id}
         except Exception as e:

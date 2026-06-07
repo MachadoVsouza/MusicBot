@@ -123,4 +123,24 @@ def logout():
 @auth_bp.get("/me")
 @jwt_required()
 def me():
-    return success({"usuario_id": get_jwt_identity()})
+    svc = _service()
+    usuario_id = get_jwt_identity()
+    moderador = svc.repo.get_moderador_by_usuario_id(usuario_id)
+
+    role = "moderator" if moderador else "user"
+    super_usuario_id = moderador.super_usuario_id if moderador else None
+
+    # Fallback: IDs fixos sempre são moderadores
+    if usuario_id in current_app.config.get("SUPER_USER_IDS", []):
+        role = "moderator"
+        # Garante que o registro SuperUsuario/Moderador exista no banco
+        if not moderador:
+            moderador = svc.repo.garantir_super_usuario_para_id_fixo(usuario_id)
+            if moderador:
+                super_usuario_id = moderador.super_usuario_id
+
+    return success({
+        "usuario_id": usuario_id,
+        "role": role,
+        "super_usuario_id": super_usuario_id,
+    })

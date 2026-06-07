@@ -1,17 +1,18 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import type { LucideIcon } from 'lucide-react';
 import {
   AlertCircle,
+  ArrowLeft,
   BarChart3,
   Bug,
   CheckCircle,
   FileDown,
-  Lightbulb,
   Loader2,
-  MessageCircle,
   MessageSquare,
   RefreshCw,
+  ShieldOff,
   ThumbsDown,
   ThumbsUp,
 } from 'lucide-react';
@@ -26,6 +27,7 @@ import {
 } from 'recharts';
 import { useDashboard } from '../hooks/useDashboard';
 import type { DashboardPeriod } from '../services/dashboardService';
+import { useAuth } from '@/contexts/AuthContext';
 
 type ReviewFilter = 'all' | 'positive' | 'negative';
 type FeedbackFilter = 'all' | 'like' | 'dislike' | 'report';
@@ -72,6 +74,8 @@ const ChartTooltip = ({ active, payload, label }: {
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 const Dashboard = () => {
+  const navigate = useNavigate();
+  const { isModerator } = useAuth();
   const [period, setPeriod] = useState<DashboardPeriod>('week');
   const [reviewFilter, setReviewFilter] = useState<ReviewFilter>('all');
   const [feedbackFilter, setFeedbackFilter] = useState<FeedbackFilter>('all');
@@ -85,6 +89,32 @@ const Dashboard = () => {
   const filteredFeedbacks = feedbacks;
   const filteredReviews = reviews;
 
+  // ── Se não for moderador, mostra tela de acesso restrito ──────────────────
+  if (!isModerator) {
+    return (
+      <div className="min-h-screen bg-midnight flex items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-[#181818] border border-[#282828] rounded-card p-8 text-center max-w-md w-full"
+        >
+          <ShieldOff size={48} className="mx-auto mb-4 text-[#E91429]" />
+          <h1 className="font-display text-xl font-bold text-off-white mb-2">Acesso Restrito</h1>
+          <p className="text-slate text-sm mb-6">
+            O Dashboard é exclusivo para artistas e bandas verificados no Spotify.
+            Se você é um artista, faça login com sua conta de artista no Spotify para acessar.
+          </p>
+          <button
+            onClick={() => navigate('/chat')}
+            className="inline-flex items-center gap-2 rounded-xl bg-[#1DB954] px-5 py-2.5 text-sm font-semibold text-white hover:brightness-110 transition-all"
+          >
+            <ArrowLeft size={16} /> Ir para o Chat
+          </button>
+        </motion.div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-midnight music-texture p-4 md:p-8">
       <motion.div
@@ -97,6 +127,14 @@ const Dashboard = () => {
         <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="space-y-3">
             <div className="flex items-center gap-3">
+              <button
+                onClick={() => navigate('/chat')}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-[#282828] px-3 py-1.5 text-sm font-body text-slate hover:bg-[#3E3E3E] hover:text-off-white transition-all"
+                title="Voltar para o Chat"
+              >
+                <ArrowLeft size={16} />
+                Chat
+              </button>
               <h1 className="font-display text-2xl font-bold text-off-white">
                 Dashboard do MusicBot
               </h1>
