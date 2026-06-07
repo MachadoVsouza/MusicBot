@@ -93,6 +93,20 @@ services:
       ollama:
         condition: service_healthy
 
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: MusicBot_pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@musicbot.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - db
+
   frontend:
     build: ./frontend
     container_name: MusicBot_frontend
@@ -114,3 +128,4 @@ services:
 volumes:
   db_data:
   ollama_data:
+  pgadmin_data:

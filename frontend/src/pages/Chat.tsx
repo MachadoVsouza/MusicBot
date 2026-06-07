@@ -106,7 +106,7 @@ const MiniPlayer = ({ midia }: { midia: Midia }) => {
 // ── Chat ──────────────────────────────────────────────────────────────────────
 const Chat = () => {
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user, logout, isModerator } = useAuth();
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -523,8 +523,12 @@ const Chat = () => {
             </button>
             {showSettings && (
               <div className="absolute right-0 bottom-12 bg-[#282828] border border-[#3E3E3E] rounded-xl p-2 w-64 z-20">
-                <button type="button" onClick={openDashboard} className="w-full flex items-center justify-between text-left px-3 py-2 rounded-lg hover:bg-[#3E3E3E] text-sm text-off-white">Dashboard <ExternalLink size={15} className="text-slate" /></button>
-                <button type="button" onClick={openKnowledgeBase} className="w-full flex items-center justify-between text-left px-3 py-2 rounded-lg hover:bg-[#3E3E3E] text-sm text-off-white">Base de conhecimento <ExternalLink size={15} className="text-slate" /></button>
+                {isModerator && (
+                  <button type="button" onClick={openDashboard} className="w-full flex items-center justify-between text-left px-3 py-2 rounded-lg hover:bg-[#3E3E3E] text-sm text-off-white">Dashboard <ExternalLink size={15} className="text-slate" /></button>
+                )}
+                {isModerator && (
+                  <button type="button" onClick={openKnowledgeBase} className="w-full flex items-center justify-between text-left px-3 py-2 rounded-lg hover:bg-[#3E3E3E] text-sm text-off-white">Base de conhecimento <ExternalLink size={15} className="text-slate" /></button>
+                )}
                 <button type="button" onClick={openProfile} className="w-full flex items-center justify-between text-left px-3 py-2 rounded-lg hover:bg-[#3E3E3E] text-sm text-off-white">Perfil <UserCircle size={15} className="text-slate" /></button>
                 <button type="button" onClick={() => { setShowSettings(false); setShowPreferences(true); }} className="w-full flex items-center justify-between text-left px-3 py-2 rounded-lg hover:bg-[#3E3E3E] text-sm text-off-white">Preferências <Settings size={15} className="text-slate" /></button>
                 <button type="button" onClick={() => { setShowSettings(false); setShowFeedback(true); }} className="w-full flex items-center justify-between text-left px-3 py-2 rounded-lg hover:bg-[#3E3E3E] text-sm text-off-white">Feedback <MessageSquare size={15} className="text-slate" /></button>

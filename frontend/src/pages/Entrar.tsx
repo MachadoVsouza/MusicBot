@@ -8,7 +8,7 @@ import { Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
 
 const Entrar = () => {
   const navigate = useNavigate();
-  const { loginWithProfile } = useAuth();
+  const { loginWithToken } = useAuth();
   const [searchParams] = useSearchParams();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -44,31 +44,17 @@ const Entrar = () => {
       const result = await loginWithPassword({ email, password });
 
       if (result.success && result.token) {
-        localStorage.setItem('musicbot_jwt', result.token);
-
-        const profileRes = await fetch('/api/spotify/profile', {
-          credentials: 'include',
-          headers: { Authorization: `Bearer ${result.token}` },
-        });
-
-        if (profileRes.ok) {
-          const profileData = await profileRes.json();
-          const profile = profileData.data;
-          loginWithProfile({
-            name: profile.display_name ?? profile.name ?? 'Usuário',
-            email: profile.email ?? email,
-            avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=user',
-            plan: profile.product ?? 'free',
-            followers: profile.followers?.total ?? 0,
-          }, result.token);
+        const ok = await loginWithToken(result.token);
+        if (ok) {
+          navigate('/chat', { replace: true });
+        } else {
+          setError('Falha ao validar o token. Tente novamente.');
         }
-        navigate('/chat', { replace: true });
       } else {
         setError(result.error || 'Erro ao fazer login');
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
-      console.error('Login error:', errorMessage);
+      console.error('Login error:', err);
       setError('Erro de conexão com o servidor');
     } finally {
       setLoading(false);

@@ -54,21 +54,24 @@ RagService + RagRepository + RagSintese + RagClient.
 
 ## 2. Frontend
 
-### ❌ Nota 3/10 — `Chat.tsx` (530+ linhas)
+### ❌ Nota 3/10 → ✅ Nota 6/10 — `Chat.tsx` (530+ linhas)
 - Streaming, histórico, feedback, export, provider toggle, mini player, preferências TUDO no mesmo arquivo
-- **Sugestão urgente:** Extrair:
+- **Melhorias da sessão 07/06**: Adicionado `isModerator` para esconder links Dashboard/Base de usuários comuns
+- **Sugestão:** Extrair:
   - `LLMProviderToggle.tsx` (já tem o estado, só mover)
   - `MessageList.tsx` + `MessageBubble.tsx`
   - `MiniPlayer.tsx` (já existe dentro do Chat.tsx)
   - `FeedbackModal.tsx`
   - `ExportMenu.tsx`
 
-### ✅ Nota 7/10 — `BaseConhecimento.tsx`
+### ✅ Nota 8/10 — `BaseConhecimento.tsx`
 - Bom: organizado, modal de novo documento, filtros, aprovação/rejeição
-- Ruim: `super_usuario_id: 1` hardcoded
+- **Corrigido 07/06**: `super_usuario_id: 1` hardcoded → usa `user.superUsuarioId` do contexto
+- **Corrigido 07/06**: Tela "Acesso Restrito" para usuários comuns (`!isModerator`)
 
-### ⚠️ Nota 5/10 — `AuthContext.tsx`
+### ⚠️ Nota 7/10 — `AuthContext.tsx`
 - `authFetch` é um helper global útil, mas mistura lógica de auth com chamadas API
+- **Melhorias 07/06**: `fetchMeData()` busca role/super_usuario_id do `/api/auth/me`; `isModerator` exposto no contexto
 - **Sugestão:** Separar em `api.ts` (fetch wrapper) e `AuthContext.tsx` (só estado de auth)
 
 ---

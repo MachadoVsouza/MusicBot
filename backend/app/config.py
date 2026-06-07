@@ -8,9 +8,9 @@ class Config:
     SESSION_FILE_DIR        = "/tmp/flask_session"
     SESSION_PERMANENT       = False
     SESSION_USE_SIGNER      = True
-    SESSION_COOKIE_SAMESITE = "Lax"
+    SESSION_COOKIE_SAMESITE = "Lax"     # Permite redirect GET cross-site (Spotify callback)
     SESSION_COOKIE_HTTPONLY = True
-    SESSION_COOKIE_SECURE   = False
+    SESSION_COOKIE_SECURE   = False     # False em dev (HTTP), True em prod (HTTPS)
     SESSION_COOKIE_DOMAIN   = None
 
     # URLs
@@ -47,6 +47,12 @@ class Config:
         "DATABASE_URL",
         "postgresql://admin:admin@localhost:5432/MusicBot"
     )
+
+    # IDs de usuários que são sempre SuperUsuários (moderadores fixos)
+    SUPER_USER_IDS = [
+        "818da73b30404df29b817237bd1a936c",
+        "b5727e21ded847928278e6fe1782060f",
+    ]
 
     # Provedor LLM ativo: "local" | "ifes"
     LLM_PROVIDER = os.getenv("LLM_PROVIDER", "local")
