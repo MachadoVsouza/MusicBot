@@ -6,6 +6,7 @@ import {
   Square, Terminal, ThumbsDown, ThumbsUp, UserCircle, X,
 } from 'lucide-react';
 import { useAuth, authFetch } from '@/contexts/AuthContext';
+import { toast } from '@/hooks/use-toast';
 import MusicbotLogo from '@/components/MusicbotLogo';
 
 const API = '/api';
@@ -127,6 +128,7 @@ const Chat = () => {
   const [preferences, setPreferences] = useState({ audioEnabled: true, compactMode: false });
   const [llmProvider, setLlmProvider] = useState<'local' | 'ifes'>('local');
   const [providerLoading, setProviderLoading] = useState(false);
+  const feedbackSendingRef = useRef(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef    = useRef<HTMLTextAreaElement>(null);
@@ -341,12 +343,15 @@ const Chat = () => {
 
   // ── Feedback ──────────────────────────────────────────────────────────────────
   const sendFeedback = async (tipo: 'like' | 'dislike' | 'report', comentario: string = '') => {
-    // Pega a última mensagem do bot que tenha respostaId
+    // Evita múltiplos envios simultâneos para a mesma resposta
+    if (feedbackSendingRef.current) return;
+
     const ultimaMsgBot = [...messages].reverse().find((m) => m.role === 'bot' && m.respostaId);
     if (!ultimaMsgBot?.respostaId) return;
 
+    feedbackSendingRef.current = true;
     try {
-      await authFetch(`${API}/chat/feedback`, {
+      const res = await authFetch(`${API}/chat/feedback`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -355,8 +360,24 @@ const Chat = () => {
           comentario: comentario || undefined,
         }),
       });
+
+      if (res.ok) {
+        const labels: Record<string, string> = {
+          like: 'Like enviado ✅',
+          dislike: 'Dislike registrado',
+          report: 'Bug report enviado ✅',
+        };
+        toast({
+          title: labels[tipo] ?? 'Feedback enviado',
+          description: comentario || undefined,
+        });
+      } else if (res.status === 401) {
+        toast({ title: 'Erro ao enviar feedback', description: 'Sessão expirada. Faça login novamente.' });
+      }
     } catch {
-      // falha silenciosa — feedback não é crítico
+      toast({ title: 'Erro de conexão', description: 'Não foi possível enviar o feedback.' });
+    } finally {
+      feedbackSendingRef.current = false;
     }
   };
 

@@ -28,3 +28,6 @@ class DashboardService:
 
     def get_avaliacoes(self, period: str, rating: str | None) -> list[dict]:
         return self._repo.get_avaliacoes(self._desde(period), rating)
+
+    def get_bugs(self, period: str) -> list[dict]:
+        return self._repo.get_bugs(self._desde(period))

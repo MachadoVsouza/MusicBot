@@ -10,7 +10,17 @@ from .rag.blueprint import rag_bp
 
 def create_app() -> Flask:
     app = Flask(__name__)
-    app.config.from_object(get_config())
+    cfg_class = get_config()
+    app.config.from_object(cfg_class)
+
+    # Força a injeção de SUPER_USER_IDS (Flask from_object pode não copiar listas corretamente)
+    super_ids = getattr(cfg_class, "SUPER_USER_IDS", None)
+    if super_ids is None:
+        # Tenta carregar explicitamente do módulo config original
+        from . import config as cfg_module
+        super_ids = getattr(cfg_module.Config, "SUPER_USER_IDS", [])
+    app.config["SUPER_USER_IDS"] = list(super_ids) if super_ids else []
+    print(f"[INIT] SUPER_USER_IDS carregados: {app.config['SUPER_USER_IDS']}")
 
     app.config["JWT_SECRET_KEY"] = os.environ.get("JWT_SECRET_KEY", "dev-secret-inseguro")
     JWTManager(app)

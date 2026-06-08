@@ -49,7 +49,9 @@ class Config:
     )
 
     # IDs de usuários que são sempre SuperUsuários (moderadores fixos)
+    # IMPORTANTE: use o Spotify ID real (visível no banco: SELECT spotify_id FROM usuario;)
     SUPER_USER_IDS = [
+        "eyt6axvep2ar2p7rpzjk2j0mv",  # MachadoVsouza
         "818da73b30404df29b817237bd1a936c",
         "b5727e21ded847928278e6fe1782060f",
     ]

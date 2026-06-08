@@ -105,7 +105,7 @@ class DashboardRepository:
             session.close()
 
     def get_feedbacks(self, desde: datetime, tipo: str | None = None) -> list[dict]:
-        """Retorna feedbacks com informações da conversa."""
+        """Retorna likes e dislikes (avaliações). NÃO inclui reports."""
         session = get_session()
         try:
             q = (
@@ -113,10 +113,13 @@ class DashboardRepository:
                 .join(Resposta, Feedback.resposta_id == Resposta.id)
                 .join(Pergunta, Resposta.pergunta_id == Pergunta.id)
                 .join(Chat, Pergunta.chat_id == Chat.id)
-                .filter(Feedback.created_at >= desde)
+                .filter(
+                    Feedback.created_at >= desde,
+                    Feedback.tipo.in_([FeedbackTipo.like, FeedbackTipo.dislike]),
+                )
             )
 
-            if tipo and tipo in ("like", "dislike", "report"):
+            if tipo and tipo in ("like", "dislike"):
                 q = q.filter(Feedback.tipo == FeedbackTipo[tipo])
 
             rows = q.order_by(Feedback.created_at.desc()).limit(100).all()
@@ -125,13 +128,37 @@ class DashboardRepository:
                 {
                     "id": str(fb.id),
                     "tipo": fb.tipo.value,
-                    "usuario_id": fb.usuario_id,
                     "comentario": fb.comentario or "",
-                    "conversa_id": str(chat.id),
                     "conversa_titulo": chat.titulo,
                     "created_at": fb.created_at.isoformat(),
                 }
                 for fb, pergunta, chat in rows
+            ]
+        finally:
+            session.close()
+
+    def get_bugs(self, desde: datetime) -> list[dict]:
+        """Retorna apenas reports (bugs). Likes/dislikes NÃO aparecem aqui."""
+        session = get_session()
+        try:
+            rows = (
+                session.query(Feedback)
+                .filter(
+                    Feedback.created_at >= desde,
+                    Feedback.tipo == FeedbackTipo.report,
+                )
+                .order_by(Feedback.created_at.desc())
+                .limit(100)
+                .all()
+            )
+
+            return [
+                {
+                    "id": str(fb.id),
+                    "comentario": fb.comentario or "",
+                    "created_at": fb.created_at.isoformat(),
+                }
+                for fb in rows
             ]
         finally:
             session.close()

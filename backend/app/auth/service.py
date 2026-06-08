@@ -181,7 +181,20 @@ class AuthService:
                 return {"success": False, "message": "Use Spotify para fazer login."}
             if not check_password_hash(usuario.password_hash, password):
                 return {"success": False, "message": "Email ou senha inválidos"}
-            return {"success": True, "spotify_id": usuario.spotify_id}
+
+            spotify_id = usuario.spotify_id
+
+            # Garante que IDs fixos (SUPER_USER_IDS) tenham SuperUsuario/Moderador no banco
+            # Isso é necessário porque o login por email/senha não passa pelo callback OAuth do Spotify
+            is_fixed = spotify_id in current_app.config.get("SUPER_USER_IDS", [])
+            if is_fixed:
+                moderador = self.repo.get_moderador_by_usuario_id(spotify_id)
+                if not moderador:
+                    profile = {"type": "user", "display_name": email, "id": spotify_id}
+                    self._verificar_e_criar_super_usuario(spotify_id, profile)
+                    print(f"[INFO] SuperUsuario garantido no login-custom para ID fixo: {spotify_id}")
+
+            return {"success": True, "spotify_id": spotify_id}
         except Exception as e:
             return {"success": False, "message": str(e)}
 

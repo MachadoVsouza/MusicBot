@@ -3,7 +3,7 @@ import requests
 from flask import current_app
 from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
 from app.auth.repository import AuthRepository
-from app.core.http import unauthorized
+from app.core.http import unauthorized, forbidden
 
 
 def require_auth(f):
@@ -33,6 +33,27 @@ def require_auth(f):
             spotify_token = _try_refresh(repo, usuario)
             if not spotify_token:
                 return unauthorized("Sessão Spotify expirada. Faça login novamente.")
+
+        return f(spotify_token, usuario_id, *args, **kwargs)
+    return wrapper
+
+
+def require_moderator(f):
+    """
+    Decorator que exige autenticação JWT + role de moderador.
+    Injeta (spotify_token, usuario_id) como require_auth.
+    """
+    @functools.wraps(f)
+    @require_auth
+    def wrapper(spotify_token: str, usuario_id: str, *args, **kwargs):
+        repo = AuthRepository()
+        moderador = repo.get_moderador_by_usuario_id(usuario_id)
+        super_ids = current_app.config.get("SUPER_USER_IDS", [])
+
+        print(f"[DEBUG require_moderator] usuario_id={usuario_id}, SUPER_USER_IDS={super_ids}, moderador={moderador is not None}")
+
+        if not moderador and usuario_id not in super_ids:
+            return forbidden("Acesso restrito a moderadores")
 
         return f(spotify_token, usuario_id, *args, **kwargs)
     return wrapper
