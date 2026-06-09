@@ -129,3 +129,16 @@ class RespostaFonte(Base):
     fragmento_id : Mapped[int] = mapped_column(ForeignKey("fragmento.id"))
     resposta : Mapped["Resposta"]  = relationship(back_populates="fontes")
     fragmento: Mapped["Fragmento"] = relationship(back_populates="fontes")
+
+
+class AuditLog(Base):
+    """Registro imutável de ações administrativas (aprovação, rejeição, criação de moderadores, etc.)."""
+    __tablename__ = "audit_log"
+    id          : Mapped[int]      = mapped_column(Integer, primary_key=True, autoincrement=True)
+    usuario_id  : Mapped[str]      = mapped_column(ForeignKey("usuario.spotify_id"))
+    acao        : Mapped[str]      = mapped_column(String(100))
+    entidade    : Mapped[str]      = mapped_column(String(50))
+    entidade_id : Mapped[int|None] = mapped_column(Integer, nullable=True)
+    detalhes    : Mapped[str|None] = mapped_column(Text, nullable=True)
+    ip          : Mapped[str|None] = mapped_column(String(45), nullable=True)
+    created_at  : Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)

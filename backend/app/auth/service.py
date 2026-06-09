@@ -7,6 +7,7 @@ from werkzeug.security import generate_password_hash
 
 from flask import current_app
 from .repository import AuthRepository
+from app.core.audit import registrar_auditoria
 
 
 class AuthService:
@@ -130,9 +131,18 @@ class AuthService:
             return  # Já é moderador
 
         nome = profile.get("display_name") or profile.get("id") or "Artista"
-        self.repo.criar_super_usuario_e_moderador(spotify_id, nome)
+        mod = self.repo.criar_super_usuario_e_moderador(spotify_id, nome)
         motivo = "ID fixo" if is_fixed else f"tipo Spotify: {tipo_conta}"
         print(f"[INFO] SuperUsuario criado automaticamente para {spotify_id} ({nome}) - {motivo}")
+
+        # Registra auditoria
+        registrar_auditoria(
+            usuario_id=spotify_id,
+            acao="moderador.criar_automatico",
+            entidade="moderador",
+            entidade_id=mod.id,
+            detalhes={"super_usuario_id": mod.super_usuario_id, "nivel": "administrador", "motivo": motivo},
+        )
 
     # ── Registration ──────────────────────────────────────────────────────────
 
