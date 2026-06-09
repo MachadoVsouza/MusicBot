@@ -193,6 +193,43 @@ class AuthService:
                 return {"success": False, "message": "Email ou senha inválidos"}
 
             spotify_id = usuario.spotify_id
+            spotify_token = usuario.spotify_token or ""
+
+            # Refresh proativo do token Spotify se expirado
+            # Isso evita o 401 na primeira chamada após login com email/senha
+            token_renovado = False
+            if spotify_token:
+                try:
+                    cfg = current_app.config
+                    resp = requests.get(
+                        f"{cfg['SPOTIFY_API_BASE']}/me",
+                        headers={"Authorization": f"Bearer {spotify_token}"},
+                        timeout=5,
+                    )
+                    if resp.status_code == 401 and usuario.spotify_refresh_token:
+                        print(f"[login_with_password] Token Spotify expirado para {spotify_id}, tentando refresh...")
+                        refresh_resp = requests.post(
+                            cfg["SPOTIFY_TOKEN_URL"],
+                            data={
+                                "grant_type":    "refresh_token",
+                                "refresh_token": usuario.spotify_refresh_token,
+                                "client_id":     cfg["SPOTIFY_CLIENT_ID"],
+                                "client_secret": cfg["SPOTIFY_CLIENT_SECRET"],
+                            },
+                            timeout=10,
+                        )
+                        if refresh_resp.ok:
+                            tokens = refresh_resp.json()
+                            new_token = tokens["access_token"]
+                            new_refresh = tokens.get("refresh_token", usuario.spotify_refresh_token)
+                            self.repo.update_user_spotify_tokens(spotify_id, new_token, new_refresh)
+                            spotify_token = new_token
+                            token_renovado = True
+                            print(f"[login_with_password] Token Spotify renovado com sucesso para {spotify_id}")
+                        else:
+                            print(f"[login_with_password] Refresh falhou: {refresh_resp.status_code} {refresh_resp.text[:200]}")
+                except requests.RequestException as e:
+                    print(f"[login_with_password] Erro ao verificar/renovar token: {e}")
 
             # Garante que IDs fixos (SUPER_USER_IDS) tenham SuperUsuario/Moderador no banco
             # Isso é necessário porque o login por email/senha não passa pelo callback OAuth do Spotify
