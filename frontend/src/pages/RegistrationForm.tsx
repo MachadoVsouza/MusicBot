@@ -65,7 +65,7 @@ const RegistrationForm = () => {
 
       if (result.success) {
         if (result.token) {
-          await loginWithToken(result.token);
+          await loginWithToken(result.token, result.refresh_token);
         }
         try {
           const profileRes = await authFetch('/api/spotify/profile');

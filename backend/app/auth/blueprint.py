@@ -1,6 +1,6 @@
 import urllib.parse
 from flask import Blueprint, redirect, request, current_app
-from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
+from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity
 from .service import AuthService
 from .repository import AuthRepository
 from app.core.http import success, unauthorized, error
@@ -46,10 +46,12 @@ def callback():
     flow = result["flow"]
 
     if flow == "login":
-        jwt = create_access_token(identity=result["spotify_id"])
-        token_enc = urllib.parse.quote(jwt)
+        access_token = create_access_token(identity=result["spotify_id"])
+        refresh_token = create_refresh_token(identity=result["spotify_id"])
+        access_enc = urllib.parse.quote(access_token)
+        refresh_enc = urllib.parse.quote(refresh_token)
         # Redireciona para /callback no frontend — que salva o token e vai para /chat
-        return redirect(f"{frontend}/auth/callback?token={token_enc}")
+        return redirect(f"{frontend}/auth/callback?token={access_enc}&refresh_token={refresh_enc}")
     else:
         return redirect(f"{frontend}/registration-form")
 
@@ -73,8 +75,9 @@ def register():
     if not result.get("success"):
         return error(result.get("message", "Erro ao criar conta"), 400, result.get("code", "registration_failed"))
 
-    jwt = create_access_token(identity=result["spotify_id"])
-    return success({"token": jwt, "spotify_id": result["spotify_id"]}, 201)
+    access_token = create_access_token(identity=result["spotify_id"])
+    refresh_token = create_refresh_token(identity=result["spotify_id"])
+    return success({"token": access_token, "refresh_token": refresh_token, "spotify_id": result["spotify_id"]}, 201)
 
 
 @auth_bp.post("/login-custom")
@@ -92,8 +95,9 @@ def login_custom():
     if not result.get("success"):
         return unauthorized(result.get("message", "Credenciais inválidas"))
 
-    jwt = create_access_token(identity=result["spotify_id"])
-    return success({"token": jwt, "spotify_id": result["spotify_id"]})
+    access_token = create_access_token(identity=result["spotify_id"])
+    refresh_token = create_refresh_token(identity=result["spotify_id"])
+    return success({"token": access_token, "refresh_token": refresh_token, "spotify_id": result["spotify_id"]})
 
 
 @auth_bp.post("/set-password")
@@ -113,6 +117,15 @@ def set_password():
         return error(result.get("message", "Erro ao definir senha"), 400, result.get("code"))
 
     return success({"message": result["message"]})
+
+
+@auth_bp.post("/refresh")
+@jwt_required(refresh=True)
+def refresh():
+    """Renova o access token usando um refresh token JWT válido."""
+    usuario_id = get_jwt_identity()
+    new_access_token = create_access_token(identity=usuario_id)
+    return success({"token": new_access_token, "usuario_id": usuario_id})
 
 
 @auth_bp.post("/logout")

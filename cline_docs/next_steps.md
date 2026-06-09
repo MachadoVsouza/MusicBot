@@ -105,6 +105,38 @@
 
 ---
 
+## ✅ Sessão 08/06/2026 — Implementações do dia
+
+### SuperUsuario / Moderador
+- [x] Correção do fluxo SuperUsuario para login email/senha (`login_with_password` agora chama `_verificar_e_criar_super_usuario`)
+- [x] `create_app()` injeta `SUPER_USER_IDS` explicitamente no `app.config`
+- [x] Debug nos decorators `require_moderator` e endpoint `/me`
+- [x] Correção do Spotify ID real do usuário (`eyt6axvep2ar2p7rpzjk2j0mv`)
+
+### Dashboard
+- [x] Botão "Exportar relatório" com dropdown (PDF / CSV)
+- [x] Endpoint `GET /dashboard/export?period=...&format=pdf|csv`
+- [x] `dashboardService.ts` com função `exportRelatorio(period, format)`
+
+### Base de Conhecimento
+- [x] Relatório de auditoria com dropdown (PDF / CSV) acima da tabela
+- [x] Endpoint `GET /rag/auditoria/export?format=pdf|csv`
+- [x] Nome do usuário na listagem de documentos (`super_usuario_nome`)
+- [x] Ações no relatório: "Aceito", "Rejeitado", "Excluído" (em vez de `documento.aprovar`)
+- [x] Entidade no relatório = título do documento (em vez de `documento#123`)
+
+### Audit Log (Requisito 2.6)
+- [x] Nova tabela `audit_log` no banco (modelo `AuditLog`)
+- [x] Módulo `core/audit.py` com função `registrar_auditoria()`
+- [x] Integrado em: aprovar, rejeitar, excluir documentos + criar SuperUsuario
+- [x] Registra: `usuario_id`, `acao`, `entidade`, `entidade_id`, `detalhes` (JSON), `ip`, `created_at`
+
+### Erro 500 no stream
+- [x] Diagnosticado como OOM Killer matando worker gunicorn (modelo Ollama pesado)
+- [x] Solução: usar LLM do IFES que não consume RAM local
+
+---
+
 ## 💡 Sugestões de Melhoria no Código
 
 ### Backend

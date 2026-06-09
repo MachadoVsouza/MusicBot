@@ -20,6 +20,7 @@ export interface RegisterResponse {
   error?: string;
   message?: string;
   token?: string;
+  refresh_token?: string;
 }
 
 export function redirectToSpotifyAuth(): void {
@@ -56,7 +57,11 @@ export async function registerUser(data: RegisterData): Promise<RegisterResponse
     if (!res.ok) {
       return { success: false, error: body.message || body.error || 'Erro ao criar conta' };
     }
-    return { success: true, token: body.data?.token || body.token };
+    return {
+      success: true,
+      token: body.data?.token || body.token,
+      refresh_token: body.data?.refresh_token || body.refresh_token,
+    };
   } catch (err) {
     console.error('Erro ao registrar usuário:', err);
     return { success: false, error: 'Erro de conexão com o servidor' };
@@ -82,6 +87,7 @@ export interface LoginResponse {
   message?: string;
   usuario_id?: string;
   token?: string;
+  refresh_token?: string;
 }
 
 export async function loginWithPassword(data: LoginData): Promise<LoginResponse> {
@@ -95,7 +101,12 @@ export async function loginWithPassword(data: LoginData): Promise<LoginResponse>
     if (!res.ok) {
       return { success: false, error: body.message || body.error || 'Erro ao fazer login' };
     }
-    return { success: true, usuario_id: body.data?.usuario_id, token: body.data?.token || body.token };
+    return {
+      success: true,
+      usuario_id: body.data?.usuario_id,
+      token: body.data?.token || body.token,
+      refresh_token: body.data?.refresh_token || body.refresh_token,
+    };
   } catch (err) {
     console.error('Erro ao fazer login com senha:', err);
     return { success: false, error: 'Erro de conexão com o servidor' };

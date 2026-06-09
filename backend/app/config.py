@@ -1,7 +1,12 @@
+from datetime import timedelta
 import os
 class Config:
     # Flask
     SECRET_KEY = os.getenv("APP_SECRET_KEY", "dev-secret-change-in-prod")
+
+    # JWT (flask-jwt-extended)
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(minutes=15)
+    JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=7)
 
     # Flask-Session
     SESSION_TYPE            = "filesystem"

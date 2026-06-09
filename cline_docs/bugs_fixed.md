@@ -1,5 +1,33 @@
 # Bugs Corrigidos
 
+## [08/06/2026] - Sessão 4: SuperUsuario, Dashboard, Audit Log
+
+### 15. Usuário sem acesso a Dashboard/Base de Conhecimento (403 Forbidden)
+- **Arquivos**: `backend/app/auth/service.py`, `backend/app/__init__.py`, `backend/app/auth/blueprint.py`, `backend/app/core/auth_guard.py`, `backend/app/config.py`
+- **Problema**: Spotify ID real do usuário (`eyt6axvep2ar2p7rpzjk2j0mv`) não estava na lista `SUPER_USER_IDS`. O login por email/senha nunca criava o registro `SuperUsuario`/`Moderador` no banco porque `_verificar_e_criar_super_usuario()` só era chamado no callback OAuth. O `from_object()` do Flask não copiava a lista `SUPER_USER_IDS` corretamente.
+- **Solução**: 
+  - `login_with_password()` agora chama `_verificar_e_criar_super_usuario()` para IDs fixos
+  - `create_app()` injeta `SUPER_USER_IDS` explicitamente com `app.config["SUPER_USER_IDS"] = list(super_ids)`
+  - Registros `super_usuario` e `moderador` populados diretamente via SQL para correção imediata
+  - ID real do usuário adicionado à lista `SUPER_USER_IDS`
+- **Impacto**: Botões Dashboard/Base de Conhecimento não apareciam e endpoints retornavam 403.
+
+### 16. Botão "Exportar relatório" no Dashboard sem ação
+- **Arquivos**: `frontend/src/pages/Dashboard.tsx`, `frontend/src/services/dashboardService.ts`, `backend/app/dashboard/blueprint.py`
+- **Problema**: Botão "Exportar relatório" era um `<button>` sem `onClick` — clicar não fazia nada.
+- **Solução**: 
+  - Novo endpoint `GET /dashboard/export?period=...&format=pdf|csv` com PDF via reportlab e CSV via csv.writer
+  - Dropdown com opções PDF/CSV, função `exportRelatorio()` no service e handler `onClick` no componente
+- **Impacto**: Requisito 2.5 do PDF ("relatórios de desempenho") agora parcialmente atendido.
+
+### 17. Erro 500 no streaming do chat (OOM Killer)
+- **Arquivos**: Diagnóstico apenas, sem alteração de código
+- **Problema**: Worker do gunicorn sendo morto com SIGKILL pelo kernel Linux por falta de memória (OOM Killer). O modelo Ollama (`qwen:4b`) consumia RAM excessiva no mesmo host Docker.
+- **Solução**: Usar o provider IFES (workstations externas) que não consome RAM local.
+- **Impacto**: Chat quebrava com 500 ao tentar gerar respostas longas.
+
+---
+
 ## [07/06/2026] - Sessão 3: User Roles, OAuth Session, Login Custom
 
 ### 14. SuperUsuários fixos não funcionavam (IDs de desenvolvedor sem role moderador)

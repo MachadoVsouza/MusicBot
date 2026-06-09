@@ -15,10 +15,11 @@ const AuthCallback = () => {
       try {
         const params = new URLSearchParams(window.location.search);
         const tokenFromUrl = params.get('token');
+        const refreshFromUrl = params.get('refresh_token');
 
         if (tokenFromUrl) {
           window.history.replaceState({}, '', '/chat');
-          const ok = await loginWithToken(tokenFromUrl);
+          const ok = await loginWithToken(tokenFromUrl, refreshFromUrl || undefined);
           if (ok) {
             navigate('/chat', { replace: true });
           } else {

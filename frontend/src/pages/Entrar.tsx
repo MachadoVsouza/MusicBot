@@ -44,7 +44,7 @@ const Entrar = () => {
       const result = await loginWithPassword({ email, password });
 
       if (result.success && result.token) {
-        const ok = await loginWithToken(result.token);
+        const ok = await loginWithToken(result.token, result.refresh_token);
         if (ok) {
           navigate('/chat', { replace: true });
         } else {

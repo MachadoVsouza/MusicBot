@@ -2,7 +2,7 @@
 
 ## Autenticação
 - [x] JWT com flask-jwt-extended (migrado de Flask-Session)
-- [ ] Refresh token rotation (token Spotify renova, JWT não tem refresh)
+- [x] Refresh token rotation (token Spotify renova, JWT não tem refresh)
 - [ ] Rate limiting em rotas de login/cadastro
 - [x] Validação de força de senha (mínimo 6 caracteres)
 - [x] Sessão Flask: SameSite=Lax + nginx proxy_pass_header Set-Cookie
@@ -32,8 +32,14 @@
 ## Frontend
 - [x] Validação de formulários client-side
 - [x] Token JWT armazenado em localStorage
-- [ ] Refresh token automático (token Spotify renova pelo backend, JWT não)
-- [ ] Logout em inatividade
+- [x] Refresh token automático (token Spotify renova pelo backend, JWT não)
+- [x] Logout em inatividade
+
+## Auditoria (Audit Log)
+- [x] Tabela `audit_log` com ações administrativas (aprovar, rejeitar, excluir documentos + criar moderador)
+- [x] Registro de IP, timestamp, detalhes em JSON
+- [x] Módulo `core/audit.py` com função `registrar_auditoria()`
+- [x] Relatório exportável em PDF/CSV via Base de Conhecimento
 
 ## RAG
 - [x] Embeddings normalizados (normalize_embeddings=True)
