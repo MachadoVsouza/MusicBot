@@ -18,15 +18,21 @@ class AuthRepository:
 
     # ── Tokens Spotify temporários (só durante callback) ─────────────────────
 
-    def save_tokens_temp(self, access_token: str, refresh_token: str | None) -> None:
+    def save_tokens_temp(self, access_token: str, refresh_token: str | None,
+                         expires_in: int | None = None) -> None:
         session["tmp_access_token"]  = access_token
         session["tmp_refresh_token"] = refresh_token
+        if expires_in is not None:
+            session["tmp_expires_in"] = expires_in
 
     def get_access_token_temp(self) -> str | None:
         return session.get("tmp_access_token")
 
     def get_refresh_token_temp(self) -> str | None:
         return session.get("tmp_refresh_token")
+
+    def get_expires_in_temp(self) -> int | None:
+        return session.get("tmp_expires_in")
 
     def save_spotify_usuario_id_temp(self, spotify_id: str) -> None:
         session["tmp_spotify_id"] = spotify_id
@@ -46,8 +52,8 @@ class AuthRepository:
         return {"type": spotify_type, "display_name": display_name}
 
     def clear_temp(self) -> None:
-        for key in ["tmp_access_token", "tmp_refresh_token", "tmp_spotify_id",
-                    "tmp_spotify_type", "tmp_display_name",
+        for key in ["tmp_access_token", "tmp_refresh_token", "tmp_expires_in",
+                    "tmp_spotify_id", "tmp_spotify_type", "tmp_display_name",
                     "verifier", "state"]:
             session.pop(key, None)
 
@@ -67,19 +73,26 @@ class AuthRepository:
         finally:
             db.close()
 
-    def update_user_spotify_tokens(self, spotify_id: str, access_token: str, refresh_token: str | None) -> None:
+    def update_user_spotify_tokens(self, spotify_id: str, access_token: str, refresh_token: str | None,
+                                    expires_in: int | None = None) -> None:
         db = get_session()
         try:
             usuario = db.get(Usuario, spotify_id)
             if usuario:
                 usuario.spotify_token = access_token
                 usuario.spotify_refresh_token = refresh_token
+                if expires_in is not None and expires_in > 0:
+                    from datetime import datetime, timezone
+                    # Buffer de 60s para evitar race condition
+                    buf = min(expires_in - 1, 60) if expires_in > 60 else 0
+                    usuario.spotify_token_expires_at = datetime.now(timezone.utc) + datetime.timedelta(seconds=expires_in - buf)
                 db.commit()
         finally:
             db.close()
 
     def create_user_with_password(self, email: str, password_hash: str, spotify_id: str,
-                                   spotify_token: str, spotify_refresh_token: str | None) -> Usuario:
+                                   spotify_token: str, spotify_refresh_token: str | None,
+                                   expires_in: int | None = None) -> Usuario:
         db = get_session()
         try:
             usuario = db.query(Usuario).filter(Usuario.spotify_id == spotify_id).first()
@@ -97,6 +110,10 @@ class AuthRepository:
                     spotify_refresh_token=spotify_refresh_token,
                 )
                 db.add(usuario)
+            if expires_in is not None and expires_in > 0:
+                from datetime import datetime, timezone
+                buf = min(expires_in - 1, 60) if expires_in > 60 else 0
+                usuario.spotify_token_expires_at = datetime.now(timezone.utc) + datetime.timedelta(seconds=expires_in - buf)
             db.commit()
             db.refresh(usuario)
             return usuario

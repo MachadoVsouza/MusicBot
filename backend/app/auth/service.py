@@ -66,6 +66,7 @@ class AuthService:
             self.repo.save_tokens_temp(
                 access_token  = tokens.get("access_token"),
                 refresh_token = tokens.get("refresh_token"),
+                expires_in    = tokens.get("expires_in"),
             )
             return True
         except Exception:
@@ -105,7 +106,8 @@ class AuthService:
 
         usuario = self.repo.get_usuario_by_spotify_id(spotify_id)
         if usuario:
-            self.repo.update_user_spotify_tokens(spotify_id, access_token, refresh_token)
+            expires_in = self.repo.get_expires_in_temp()
+            self.repo.update_user_spotify_tokens(spotify_id, access_token, refresh_token, expires_in)
             # Verifica se é artista Spotify ou ID fixo → garante SuperUsuario
             self._verificar_e_criar_super_usuario(spotify_id, profile)
             self.repo.clear_temp()
@@ -160,12 +162,14 @@ class AuthService:
             return {"success": False, "message": str(e), "code": "password_hash_error"}
 
         try:
+            expires_in = self.repo.get_expires_in_temp()
             usuario = self.repo.create_user_with_password(
                 email=email,
                 password_hash=password_hash,
                 spotify_id=spotify_id,
                 spotify_token=access_token,
                 spotify_refresh_token=refresh_token,
+                expires_in=expires_in,
             )
             # Verifica SuperUsuario para IDs fixos ou artistas após registro
             profile_info = self.repo.get_spotify_profile_temp()

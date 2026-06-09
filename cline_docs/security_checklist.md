@@ -8,7 +8,7 @@
 - [x] Sessão Flask: SameSite=Lax + nginx proxy_pass_header Set-Cookie
 - [x] Role-based access: `/api/auth/me` retorna role + super_usuario_id
 - [x] Proteção de Dashboard e Base de Conhecimento (só moderadores)
-- [ ] `_is_token_valid()` faz GET /v1/me a cada requisição (consome rate limit Spotify)
+- [x] `_is_token_valid()` faz GET /v1/me a cada requisição (consome rate limit Spotify)
 
 ## API
 - [ ] CORS configurado corretamente
