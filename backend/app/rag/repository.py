@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime, timezone
 from app.database.connection import get_session
-from app.database.models import Documento, Fragmento, RespostaFonte, DocumentoStatus
+from app.database.models import Documento, Fragmento, RespostaFonte, DocumentoStatus, SuperUsuario
 from .client import get_embedding, get_embeddings_batch
 
 logger = logging.getLogger(__name__)

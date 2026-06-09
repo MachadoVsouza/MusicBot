@@ -130,17 +130,24 @@ def me():
     role = "moderator" if moderador else "user"
     super_usuario_id = moderador.super_usuario_id if moderador else None
 
+    super_ids = current_app.config.get("SUPER_USER_IDS", [])
+    print(f"[DEBUG /me] usuario_id={usuario_id}, SUPER_USER_IDS={super_ids}, moderador={moderador is not None}, role={role}")
+
     # Fallback: IDs fixos sempre são moderadores
-    if usuario_id in current_app.config.get("SUPER_USER_IDS", []):
+    if usuario_id in super_ids:
+        print(f"[DEBUG /me] ID {usuario_id} encontrado em SUPER_USER_IDS, garantindo moderador...")
         role = "moderator"
         # Garante que o registro SuperUsuario/Moderador exista no banco
         if not moderador:
             moderador = svc.repo.garantir_super_usuario_para_id_fixo(usuario_id)
             if moderador:
                 super_usuario_id = moderador.super_usuario_id
+                print(f"[DEBUG /me] SuperUsuario criado via fallback: super_usuario_id={super_usuario_id}")
 
-    return success({
+    result = {
         "usuario_id": usuario_id,
         "role": role,
         "super_usuario_id": super_usuario_id,
-    })
+    }
+    print(f"[DEBUG /me] Resposta: {result}")
+    return success(result)

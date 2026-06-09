@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
   Check,
+  FileDown,
   FileText,
   Loader2,
   Plus,
@@ -14,6 +15,7 @@ import {
   ShieldOff,
 } from 'lucide-react';
 import { authFetch, useAuth } from '@/contexts/AuthContext';
+import { toast } from '@/hooks/use-toast';
 
 const API = '/api';
 
@@ -27,6 +29,7 @@ interface Documento {
   aprovado_por: string | null;
   aprovado_em: string | null;
   motivo_rejeicao: string | null;
+  super_usuario_nome: string | null;
 }
 
 const statusCfg = {
@@ -61,6 +64,9 @@ const BaseConhecimento = () => {
   // Modal de rejeição
   const [rejeitarId, setRejeitarId] = useState<number | null>(null);
   const [rejeitarMotivo, setRejeitarMotivo] = useState('');
+
+  // Menu de exportação de auditoria
+  const [showAuditExport, setShowAuditExport] = useState(false);
 
   const superUsuarioId = user?.superUsuarioId;
 
@@ -201,6 +207,28 @@ const BaseConhecimento = () => {
     }
   };
 
+  // ── Exportar auditoria ────────────────────────────────────────────────────
+  const exportAuditoria = async (format: 'pdf' | 'csv') => {
+    setShowAuditExport(false);
+    try {
+      const jwt = localStorage.getItem('musicbot_jwt');
+      const res = await fetch(`${API}/rag/auditoria/export?format=${format}`, {
+        headers: jwt ? { Authorization: `Bearer ${jwt}` } : {},
+      });
+      if (!res.ok) throw new Error('Falha ao exportar');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `auditoria_base_conhecimento.${format}`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast({ title: `Relatório de auditoria ${format.toUpperCase()} exportado ✅` });
+    } catch {
+      toast({ title: 'Erro ao exportar relatório de auditoria', variant: 'destructive' });
+    }
+  };
+
   // ── Se não for moderador, mostra tela de acesso restrito ──────────────────
   if (!isModerator) {
     return (
@@ -252,8 +280,8 @@ const BaseConhecimento = () => {
           </button>
         </div>
 
-        {/* Filtros */}
-        <div className="mb-6 flex flex-wrap gap-3">
+        {/* Filtros + Exportação de Auditoria */}
+        <div className="mb-6 flex flex-wrap items-end gap-3">
           <div className="bg-[#282828] border border-[#3E3E3E] flex min-w-[220px] flex-1 items-center gap-2 rounded-xl px-3">
             <Search size={16} className="text-slate" />
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar por título..."
@@ -266,6 +294,36 @@ const BaseConhecimento = () => {
             <option value="aprovado">✅ Aprovado</option>
             <option value="rejeitado">❌ Rejeitado</option>
           </select>
+
+          {/* Botão de exportação de auditoria */}
+          <div className="relative ml-auto">
+            <button
+              type="button"
+              onClick={() => setShowAuditExport((p) => !p)}
+              className="flex items-center gap-2 rounded-xl bg-[#282828] border border-[#3E3E3E] px-4 py-2.5 text-sm text-slate hover:text-off-white transition-colors"
+            >
+              <FileDown size={16} />
+              Relatório de auditoria
+            </button>
+            {showAuditExport && (
+              <div className="absolute right-0 top-12 bg-[#282828] border border-[#3E3E3E] rounded-xl p-2 w-44 z-20">
+                <p className="text-xs text-slate px-2 py-1 mb-1">Formato</p>
+                {([
+                  { key: 'pdf', label: 'PDF' },
+                  { key: 'csv', label: 'CSV' },
+                ] as const).map(({ key, label }) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => exportAuditoria(key)}
+                    className="w-full text-left px-2 py-2 rounded-lg text-off-white text-sm hover:bg-[#3E3E3E] transition-colors"
+                  >
+                    Exportar como {label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Tabela */}

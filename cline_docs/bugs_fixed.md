@@ -2,6 +2,12 @@
 
 ## [07/06/2026] - Sessão 3: User Roles, OAuth Session, Login Custom
 
+### 14. SuperUsuários fixos não funcionavam (IDs de desenvolvedor sem role moderador)
+- **Arquivos**: `backend/app/config.py`, `backend/app/auth/service.py`, `backend/app/auth/repository.py`, `backend/app/auth/blueprint.py`
+- **Problema**: Código anterior só criava SuperUsuario para `type: "artist"` do Spotify. Os IDs `818da73b30404df29b817237bd1a936c` e `b5727e21ded847928278e6fe1782060f` nunca recebiam role de moderador, e os botões Dashboard/Base não apareciam.
+- **Solução**: Lista `SUPER_USER_IDS` no config; `_verificar_e_criar_super_usuario()` aceita IDs fixos OU artistas; `register_user()` salva perfil na sessão para verificação pós-registro; `/me` com fallback `garantir_super_usuario_para_id_fixo()` que cria SuperUsuario/Moderador no banco automaticamente.
+- **Impacto**: Sem o fix, os perfis de desenvolvedor eram tratados como usuários comuns, sem acesso ao Dashboard e Base de Conhecimento.
+
 ### 11. Sessão Flask inválida no callback OAuth (state_invalido)
 - **Arquivos**: `backend/app/config.py`, `frontend/nginx.conf`
 - **Problema**: `SESSION_COOKIE_SAMESITE="None"` com `SESSION_COOKIE_SECURE=False` (HTTP) é inválido no Chrome — cookie rejeitado. Além disso, nginx não repassava `Set-Cookie` do backend.

@@ -23,7 +23,7 @@
 - Guards de autenticação via decorator (`@require_auth`)
 - Sessão Flask com `SameSite=Lax` + nginx `proxy_pass_header Set-Cookie` para resolver `state_invalido`
 - **Role-based access**: `/api/auth/me` retorna `role` e `super_usuario_id`; detecção automática de artista Spotify (`type: "artist"`) → cria SuperUsuario
-- **Moderadores fixos**: `FIXED_MODERATOR_IDS` no config para developers
+- **SuperUsuários fixos**: `SUPER_USER_IDS` no config com IDs de desenvolvedor (`818da73b30404df29b817237bd1a936c`, `b5727e21ded847928278e6fe1782060f`); fallback no `/me` com `garantir_super_usuario_para_id_fixo()` para criar registro no banco sob demanda
 - **Problema conhecido**: `_is_token_valid()` faz GET /v1/me a cada requisição, consumindo rate limit
 
 ## Frontend

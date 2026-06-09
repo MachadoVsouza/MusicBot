@@ -53,16 +53,19 @@
 - [x] Base de conhecimento (conectada ao backend)
 - [x] Dashboard com métricas
 - [x] Auth (login, callback, registro)
-- [x] Role-based access: user vs moderator (artista Spotify)
+- [x] Role-based access: user vs moderator (artista Spotify + IDs fixos)
 - [x] Proteção de Dashboard e Base de Conhecimento (só moderadores)
 - [x] Correção login com email/senha (Entrar.tsx → loginWithToken)
 - [x] Correção OAuth state_invalido (nginx + SameSite=Lax)
+- [x] SuperUsuários fixos por ID (SUPER_USER_IDS no config + fallback /me)
+- [x] pgAdmin4 no docker-compose (porta 5050)
+- [x] Botão "← Chat" no Dashboard
 
 ### Extras
 - [x] MCP Server (13 tools do Spotify)
 - [x] Cloudflare Tunnel (container Docker com profile)
 - [x] Scopes de playback adicionados
-- [x] Moderadores fixos (FIXED_MODERATOR_IDS no config)
+- [x] Moderadores fixos (SUPER_USER_IDS no config)
 
 ---
 
@@ -144,6 +147,6 @@
 **Problema**: Objeto `styles` gigante com CSS inline. Difícil de manter.
 **Sugestão**: Migrar para Tailwind classes ou CSS modules.
 
-#### 10. `BaseConhecimento.tsx` — super_usuario_id hardcoded
+#### 10. `BaseConhecimento.tsx` — super_usuario_id hardcoded → ✅ RESOLVIDO
 **Problema**: `super_usuario_id: 1` fixo no submit. Se não existir SuperUsuario com ID 1 no banco, a requisição falha.
-**Sugestão**: Criar SuperUsuario default no populate_mock_data.py ou permitir null e usar o moderador logado.
+**Solução**: Usa `user.superUsuarioId` do AuthContext (obtido via `/api/auth/me`). **Resolvido em 07/06/2026.**

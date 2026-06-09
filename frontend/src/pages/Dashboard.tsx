@@ -27,19 +27,20 @@ import {
 } from 'recharts';
 import { useDashboard } from '../hooks/useDashboard';
 import type { DashboardPeriod } from '../services/dashboardService';
+import { exportRelatorio } from '../services/dashboardService';
 import { useAuth } from '@/contexts/AuthContext';
+import { toast } from '@/hooks/use-toast';
 
 type ReviewFilter = 'all' | 'positive' | 'negative';
-type FeedbackFilter = 'all' | 'like' | 'dislike' | 'report';
-type FeedbackType = Exclude<FeedbackFilter, 'all'>;
+type FeedbackFilter = 'all' | 'like' | 'dislike';
 
 const feedbackTypeConfig: Record<
-  FeedbackType,
+  FeedbackFilter,
   { label: string; icon: LucideIcon; className: string }
 > = {
+  all: { label: 'Todos', icon: MessageSquare, className: 'text-slate' },
   like: { label: 'Like', icon: ThumbsUp, className: 'text-[#1ED760]' },
   dislike: { label: 'Dislike', icon: ThumbsDown, className: 'text-[#E91429]' },
-  report: { label: 'Report', icon: Bug, className: 'text-yellow-400' },
 };
 
 function formatPercent(value: number | null | undefined): string {
@@ -79,8 +80,9 @@ const Dashboard = () => {
   const [period, setPeriod] = useState<DashboardPeriod>('week');
   const [reviewFilter, setReviewFilter] = useState<ReviewFilter>('all');
   const [feedbackFilter, setFeedbackFilter] = useState<FeedbackFilter>('all');
+  const [showExportMenu, setShowExportMenu] = useState(false);
 
-  const { metrics, chartData, feedbacks, reviews, loading, error, refresh } = useDashboard(
+  const { metrics, chartData, feedbacks, reviews, bugs, loading, error, refresh } = useDashboard(
     period,
     feedbackFilter === 'all' ? undefined : feedbackFilter,
     reviewFilter === 'all' ? undefined : reviewFilter,
@@ -288,7 +290,6 @@ const Dashboard = () => {
                 { key: 'all' as const, label: 'Todos' },
                 { key: 'like' as const, label: 'Likes' },
                 { key: 'dislike' as const, label: 'Dislikes' },
-                { key: 'report' as const, label: 'Reports' },
               ].map((option) => (
                 <button
                   key={option.key}
@@ -309,9 +310,7 @@ const Dashboard = () => {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-[hsla(0,0%,100%,0.08)]">
-                  <th className="p-3 text-left text-xs font-mono-label uppercase tracking-wider text-slate">ID</th>
                   <th className="p-3 text-left text-xs font-mono-label uppercase tracking-wider text-slate">Tipo</th>
-                  <th className="p-3 text-left text-xs font-mono-label uppercase tracking-wider text-slate">Usuário</th>
                   <th className="p-3 text-left text-xs font-mono-label uppercase tracking-wider text-slate">Comentário</th>
                   <th className="p-3 text-left text-xs font-mono-label uppercase tracking-wider text-slate">Conversa</th>
                   <th className="p-3 text-left text-xs font-mono-label uppercase tracking-wider text-slate">Data</th>
@@ -320,34 +319,32 @@ const Dashboard = () => {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={6} className="p-8 text-center">
+                    <td colSpan={4} className="p-8 text-center">
                       <Loader2 size={20} className="mx-auto animate-spin text-slate" />
                     </td>
                   </tr>
                 ) : filteredFeedbacks.length === 0 ? (
                   <EmptyTableRow
-                    colSpan={6}
+                    colSpan={4}
                     title="Nenhum feedback disponível"
                     description="Nenhum feedback registrado para o período e filtro selecionados."
                   />
                 ) : (
-                  filteredFeedbacks.map((fb) => {
-                    const config = feedbackTypeConfig[fb.tipo];
+                  feedbacks.map((fb) => {
+                    const config = feedbackTypeConfig[fb.tipo] ?? feedbackTypeConfig.all;
                     const TypeIcon = config.icon;
                     return (
                       <tr
                         key={fb.id}
                         className="border-b border-[#1E1E1E] transition-colors hover:bg-[#282828]"
                       >
-                        <td className="p-3 text-sm font-mono-label text-teal">#{fb.id}</td>
                         <td className="p-3">
                           <span className={`flex items-center gap-1.5 text-xs font-body ${config.className}`}>
                             <TypeIcon size={14} />
                             {config.label}
                           </span>
                         </td>
-                        <td className="p-3 text-sm font-body text-off-white">{fb.usuario_id}</td>
-                        <td className="p-3 text-sm font-body text-off-white">
+                        <td className="p-3 text-sm font-body text-off-white max-w-xs truncate">
                           {fb.comentario || <span className="text-slate italic">sem comentário</span>}
                         </td>
                         <td className="p-3 text-xs font-body text-slate">{fb.conversa_titulo}</td>
@@ -361,7 +358,59 @@ const Dashboard = () => {
           </div>
 
           <p className="mt-3 text-xs font-body text-slate">
-            Mostrando {filteredFeedbacks.length} feedbacks
+            Mostrando {feedbacks.length} feedbacks
+          </p>
+        </div>
+
+        {/* ── Tabela de Bug Reports ─────────────────────────────────────────── */}
+        <div className="bg-[#181818] border border-[#282828] mb-8 rounded-card p-6">
+          <div className="mb-4 flex items-center gap-2">
+            <Bug size={20} className="text-yellow-400" />
+            <h2 className="font-display text-lg font-semibold text-off-white">Bug Reports</h2>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-[hsla(0,0%,100%,0.08)]">
+                  <th className="p-3 text-left text-xs font-mono-label uppercase tracking-wider text-slate">ID</th>
+                  <th className="p-3 text-left text-xs font-mono-label uppercase tracking-wider text-slate">Comentário</th>
+                  <th className="p-3 text-left text-xs font-mono-label uppercase tracking-wider text-slate">Data</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td colSpan={3} className="p-8 text-center">
+                      <Loader2 size={20} className="mx-auto animate-spin text-slate" />
+                    </td>
+                  </tr>
+                ) : bugs.length === 0 ? (
+                  <EmptyTableRow
+                    colSpan={3}
+                    title="Nenhum bug reportado"
+                    description="Nenhum bug report registrado para este período."
+                  />
+                ) : (
+                  bugs.map((bug) => (
+                    <tr
+                      key={bug.id}
+                      className="border-b border-[#1E1E1E] transition-colors hover:bg-[#282828]"
+                    >
+                      <td className="p-3 text-sm font-mono-label text-yellow-400">#{bug.id}</td>
+                      <td className="p-3 text-sm font-body text-off-white max-w-md">
+                        {bug.comentario || <span className="text-slate italic">sem comentário</span>}
+                      </td>
+                      <td className="p-3 text-xs font-mono-label text-slate">{formatDate(bug.created_at)}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <p className="mt-3 text-xs font-body text-slate">
+            Mostrando {bugs.length} bug reports
           </p>
         </div>
 
@@ -441,10 +490,42 @@ const Dashboard = () => {
 
         {/* ── Footer ────────────────────────────────────────────────────────── */}
         <div className="mt-6 flex justify-end">
-          <button className="flex items-center gap-2 text-sm font-body text-slate transition-colors duration-200 hover:text-white">
-            <FileDown size={16} />
-            Exportar relatório
-          </button>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowExportMenu((p) => !p)}
+              className="flex items-center gap-2 text-sm font-body text-slate transition-colors duration-200 hover:text-white"
+            >
+              <FileDown size={16} />
+              Exportar relatório
+            </button>
+            {showExportMenu && (
+              <div className="absolute right-0 bottom-10 bg-[#282828] border border-[#3E3E3E] rounded-xl p-2 w-48 z-20">
+                <p className="text-xs text-slate px-2 py-1 mb-1">Formato</p>
+                {([
+                  { key: 'pdf', label: 'PDF' },
+                  { key: 'csv', label: 'CSV' },
+                ] as const).map(({ key, label }) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={async () => {
+                      setShowExportMenu(false);
+                      try {
+                        await exportRelatorio(period, key);
+                        toast({ title: `Relatório ${label} exportado ✅` });
+                      } catch {
+                        toast({ title: 'Erro ao exportar relatório', variant: 'destructive' });
+                      }
+                    }}
+                    className="w-full text-left px-2 py-2 rounded-lg text-off-white text-sm hover:bg-[#3E3E3E] transition-colors"
+                  >
+                    Exportar como {label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </motion.div>
     </div>

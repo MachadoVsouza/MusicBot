@@ -18,3 +18,6 @@ def unauthorized(message: str = "Não autenticado"):
 
 def not_found(message: str = "Recurso não encontrado"):
     return error(message, 404, "not_found")
+
+def forbidden(message: str = "Acesso negado"):
+    return error(message, 403, "forbidden")

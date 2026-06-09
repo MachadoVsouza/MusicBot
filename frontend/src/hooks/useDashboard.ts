@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  fetchBugs,
   fetchChartData,
   fetchFeedbacks,
   fetchMetrics,
   fetchReviews,
   type ChartPoint,
+  type DashboardBug,
   type DashboardFeedback,
   type DashboardMetrics,
   type DashboardPeriod,
@@ -16,6 +18,7 @@ interface DashboardData {
   chartData: ChartPoint[];
   feedbacks: DashboardFeedback[];
   reviews: DashboardReview[];
+  bugs: DashboardBug[];
   loading: boolean;
   error: string | null;
   refresh: () => void;
@@ -30,6 +33,7 @@ export function useDashboard(
   const [chartData, setChartData] = useState<ChartPoint[]>([]);
   const [feedbacks, setFeedbacks] = useState<DashboardFeedback[]>([]);
   const [reviews, setReviews] = useState<DashboardReview[]>([]);
+  const [bugs, setBugs] = useState<DashboardBug[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const refreshTokenRef = useRef(0);
@@ -40,11 +44,12 @@ export function useDashboard(
     const token = ++refreshTokenRef.current;
 
     try {
-      const [m, c, f, r] = await Promise.all([
+      const [m, c, f, r, b] = await Promise.all([
         fetchMetrics(period),
         fetchChartData(period),
         fetchFeedbacks(period, feedbackTipo),
         fetchReviews(period, reviewRating),
+        fetchBugs(period),
       ]);
 
       // Ignora se já houve novo refresh enquanto esperava
@@ -54,6 +59,7 @@ export function useDashboard(
       setChartData(c);
       setFeedbacks(f);
       setReviews(r);
+      setBugs(b);
     } catch (err) {
       if (token !== refreshTokenRef.current) return;
       setError(err instanceof Error ? err.message : 'Erro ao carregar dados');
@@ -66,5 +72,5 @@ export function useDashboard(
     void load();
   }, [load]);
 
-  return { metrics, chartData, feedbacks, reviews, loading, error, refresh: load };
+  return { metrics, chartData, feedbacks, reviews, bugs, loading, error, refresh: load };
 }
