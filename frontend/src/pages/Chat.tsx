@@ -525,7 +525,7 @@ const Chat = () => {
           </div>
 
           {/* Toggle de provedor LLM */}
-          <div className="flex items-center gap-2 justify-self-end">
+          <div className="relative flex items-center gap-2 justify-self-end">
             <button
               type="button"
               onClick={toggleProvider}

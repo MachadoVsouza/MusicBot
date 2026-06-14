@@ -1,5 +1,5 @@
 """
-RAG com Síntese — monta o prompt com os fragmentos e chama o LLM diretamente,
+RAG com Sintese — monta o prompt com os fragmentos e chama o LLM diretamente,
 em vez de depender de create_stuff_documents_chain (removido no LangChain 1.x).
 """
 import logging
@@ -10,13 +10,18 @@ from .repository import RagRepository
 
 logger = logging.getLogger(__name__)
 
-SYSTEM_PROMPT_SINTESE = """Você é o MusicBot, um assistente musical inteligente e apaixonado por música.
+SYSTEM_PROMPT_SINTESE = """Voce eh o MusicBot, especialista em sintese de informacoes musicais.
 
-Use SOMENTE o contexto abaixo para responder a pergunta do usuário.
-Se o contexto não tiver informação suficiente para responder, diga:
-"Não encontrei informações suficientes na base de conhecimento sobre isso."
+## Tarefa
+Responda a pergunta do usuario baseando-se PRIMARIAMENTE no contexto abaixo. Voce PODE complementar com seu conhecimento geral, desde que diferencie claramente a origem da informacao.
 
-Seja detalhado e completo. Responda em português brasileiro.
+## Regras
+- Se o contexto tiver informacoes suficientes: responda usando-as como base, citando as fontes naturalmente
+- Se o contexto for parcial: responda o que puder + indique o que ficou sem cobertura
+- Se o contexto for irrelevante/vazio: diga "A base de conhecimento nao possui informacoes sobre este tema, mas posso responder com conhecimento geral" e responda
+- NUNCA invente informacoes que contradigam o contexto
+- Use formatacao leve (paragrafos, bullets) para legibilidade
+- Responda SEMPRE em portugues brasileiro
 
 <contexto>
 {context}
@@ -24,7 +29,7 @@ Seja detalhado e completo. Responda em português brasileiro.
 
 
 class RagSintese:
-    """Faz síntese RAG montando o prompt com os fragmentos e chamando o LLM."""
+    """Faz sintese RAG montando o prompt com os fragmentos e chamando o LLM."""
 
     def __init__(self):
         self.repo = RagRepository()
@@ -33,7 +38,7 @@ class RagSintese:
         """
         Busca fragmentos similares e gera uma resposta sintetizada.
         Retorna a resposta + as fontes utilizadas.
-        Se spotify_id for informado, respeita o provider do usuário.
+        Se spotify_id for informado, respeita o provider do usuario.
         """
         fragmentos = self.repo.buscar_similares(pergunta, limite)
         if not fragmentos:
@@ -61,7 +66,7 @@ class RagSintese:
             if hasattr(resposta, "content"):
                 resposta = resposta.content
         except Exception:
-            logger.exception("Erro na síntese RAG")
+            logger.exception("Erro na sintese RAG")
             return {
                 "resposta": None,
                 "usou_rag": True,

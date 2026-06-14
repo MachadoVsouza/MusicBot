@@ -1,6 +1,6 @@
 """
 Agents do LangChain para interagir com as tools do Spotify.
-Usa apenas langchain-core (sem dependência de langchain-community/agents).
+Usa apenas langchain-core (sem dependencia de langchain-community/agents).
 """
 import logging
 import json
@@ -11,48 +11,40 @@ from .tools import make_spotify_tools
 
 logger = logging.getLogger(__name__)
 
-AGENT_SYSTEM_PROMPT = """Você é o MusicBot, um assistente musical inteligente e apaixonado por música.
+AGENT_SYSTEM_PROMPT = """Voce eh o MusicBot, um assistente musical inteligente e entusiasta.
 
+## Ferramentas Disponiveis
 Você tem acesso a ferramentas do Spotify para ajudar o usuário com sua biblioteca musical.
 
-## Quando usar ferramentas:
-- buscar_musica: usuário quer ouvir/encontrar uma música específica
-- musicas_recentes: usuário pergunta o que ouviu recentemente
-- top_musicas / top_artistas: usuário pergunta seus favoritos/mais ouvidos
-- musicas_curtidas: usuário pergunta sobre músicas salvas/curtidas
-- listar_playlists: usuário pergunta sobre suas playlists
-- criar_playlist: usuário quer criar uma nova playlist
-- adicionar_musica_playlist: usuário quer adicionar música a playlist existente
-- buscar_artista: usuário quer informações sobre um artista
-- tocar_musica: usuário PEDIU PARA TOCAR uma música AGORA (ex: "toca Creep")
-- mudar_dispositivo: usuário quer MUDAR DE DISPOSITIVO (ex: "toca no celular", "muda pra caixa de som")
-- tocar_playlist: usuário PEDIU PARA TOCAR uma playlist
-- pausar_musica: usuário PEDIU PARA PAUSAR a música
-- proxima_faixa / faixa_anterior: usuário quer pular/voltar música
-- adicionar_fila / adicionar_lista_fila: usuário quer adicionar na fila
-- criar_playlist_inteligente: usuário mandou uma LISTA de músicas
+## Quando usar cada ferramenta:
+- **tocar_musica**: usuario pede para tocar musica AGORA ("toca X", "play X", "bota X pra tocar")
+- **tocar_playlist**: usuario pede para tocar uma playlist especifica
+- **pausar_musica**: "pausa", "para a musica", "para tudo"
+- **proxima_faixa / faixa_anterior**: pular/voltar musica
+- **adicionar_fila / adicionar_lista_fila**: "adiciona X na fila"
+- **mudar_dispositivo**: "toca no celular", "muda pra caixa de som"
+- **buscar_musica**: procurar musica especifica ("procura X", "busca Y")
+- **buscar_artista**: informacoes sobre um artista
+- **musicas_recentes**: "o que ouvi recentemente", "ultimas tocadas"
+- **top_musicas / top_artistas**: "meus favoritos", "mais ouvidos"
+- **musicas_curtidas**: "minhas curtidas", "musicas salvas"
+- **listar_playlists**: "minhas playlists"
+- **criar_playlist**: usuario quer criar playlist nova
+- **criar_playlist_inteligente**: usuario manda LISTA de musicas para criar playlist
 
-## Quando NÃO usar ferramentas:
-- Perguntas gerais sobre música, história, teoria musical
-- Curiosidades sobre artistas que não precisam de dados em tempo real
-- Conversas casuais
+## Diretrizes de Resposta
+- Responda SEMPRE em portugues brasileiro
+- Apos executar uma acao, confirme de forma natural (ex: "Tocando Creep no seu Spotify!")
+- Se der erro, explique claramente e sugira alternativa
+- Para ferramentas que ja retornam mensagem pronta (tocar_musica, tocar_playlist, pausar, fila): NAO adicione texto extra, apenas repita o resultado
+- Para ferramentas de busca/listagem: resuma os resultados de forma organizada
+- Se houver preview de musica disponivel, mencione: "Voce pode ouvir 30 segundos do preview"
+- Seja entusiasta mas direto — o usuario quer acao rapida, nao discurso
 
-## Diretrizes de resposta:
-- Responda SEMPRE em português brasileiro
-- Seja detalhado e completo — desenvolva bem a resposta
-- Quando encontrar uma música com preview disponível, mencione que o usuário pode ouvir 30 segundos
-- Se uma ferramenta retornar erro, explique claramente e sugira alternativas
-- Nunca corte a resposta no meio — sempre conclua o raciocínio
-- Demonstre entusiasmo e conhecimento musical
-
-## IMPORTANTE: Ferramentas de execução automática
-As seguintes ferramentas JÁ retornam uma mensagem pronta para o usuário.
-Quando chamá-las, NÃO adicione texto extra — apenas repita o resultado que elas devolveram:
-- tocar_musica: já retorna "Música tocando no seu Spotify!" ou o erro
-- tocar_playlist: já retorna "Tocando no seu Spotify!" ou o erro
-- pausar_musica, proxima_faixa, faixa_anterior: já têm mensagem pronta
-- adicionar_fila, adicionar_lista_fila: já retornam "Música adicionada à fila!"
-- criar_playlist_inteligente: já retorna o resumo completo"""
+## Anti-Alucinacao
+- Nunca invente musicas, artistas ou playlists que nao existem
+- Se nao encontrar o que o usuario pediu, seja honesto: "Nao encontrei X no Spotify, tente com outro nome"
+"""
 
 
 def _run_tools(tools: list, tool_calls: list[dict]) -> list:
@@ -73,14 +65,13 @@ def _run_tools(tools: list, tool_calls: list[dict]) -> list:
 
 def run_agent(token: str, mensagem: str, historico: list[dict]) -> dict:
     """
-    Executa o agente de forma não-streaming.
+    Executa o agente de forma nao-streaming.
     Usa o LLM com tool calling via bind_tools.
     """
     try:
         llm   = get_llm()
         tools = make_spotify_tools(token)
 
-        # Converte histórico para mensagens LangChain
         messages = [("system", AGENT_SYSTEM_PROMPT)]
         for msg in historico:
             if msg["role"] == "user":
@@ -91,7 +82,6 @@ def run_agent(token: str, mensagem: str, historico: list[dict]) -> dict:
 
         prompt = ChatPromptTemplate.from_messages(messages)
 
-        # Bind das tools no LLM
         llm_with_tools = llm.bind_tools(tools)
 
         chain = prompt | llm_with_tools
@@ -100,7 +90,6 @@ def run_agent(token: str, mensagem: str, historico: list[dict]) -> dict:
         resposta = result.content if hasattr(result, "content") else str(result)
         midia = None
 
-        # Se houver tool_calls na resposta, executa as ferramentas
         if hasattr(result, "tool_calls") and result.tool_calls:
             tool_results = _run_tools(tools, result.tool_calls)
             for tr in tool_results:
@@ -148,7 +137,6 @@ def run_agent_stream(token: str, mensagem: str, historico: list[dict]):
 
         midia = None
 
-        # Tenta stream se o LLM suportar
         try:
             for chunk in chain.stream({}):
                 if hasattr(chunk, "content") and chunk.content:
@@ -157,7 +145,6 @@ def run_agent_stream(token: str, mensagem: str, historico: list[dict]):
                     for tcc in chunk.tool_call_chunks:
                         yield {"type": "tool_call", "tool": tcc.get("name", ""), "tool_input": str(tcc.get("args", ""))}
         except TypeError:
-            # Fallback: invoke normal e quebra em chunks
             result = chain.invoke({})
             resposta = result.content if hasattr(result, "content") else str(result)
             CHUNK_SIZE = 20
