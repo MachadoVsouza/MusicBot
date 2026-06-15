@@ -115,6 +115,43 @@ def set_password():
     return success({"message": result["message"]})
 
 
+@auth_bp.post("/forgot-password")
+def forgot_password():
+    svc  = _service()
+    data = request.get_json(silent=True) or {}
+    email = (data.get("email") or "").strip()
+
+    if not email:
+        return error("Email é obrigatório", 400, "missing_email")
+
+    ok = svc.send_reset_email(email)
+    if not ok:
+        return error("Erro ao enviar email. Tente novamente mais tarde.", 500, "email_failed")
+
+    # Sempre retorna a mesma mensagem — não vaza se o email existe ou não
+    return success({"message": "Se o email estiver cadastrado, você receberá um link de redefinição."})
+
+
+@auth_bp.post("/reset-password")
+def reset_password():
+    svc  = _service()
+    data = request.get_json(silent=True) or {}
+
+    token = (data.get("token") or "").strip()
+    password = data.get("password", "")
+
+    if not token:
+        return error("Token é obrigatório", 400, "missing_token")
+    if not password:
+        return error("Senha é obrigatória", 400, "missing_password")
+
+    result = svc.reset_password(token, password)
+    if not result.get("success"):
+        return error(result.get("message", "Erro ao redefinir senha"), 400, result.get("code"))
+
+    return success({"message": result["message"]})
+
+
 @auth_bp.post("/logout")
 def logout():
     return "", 204

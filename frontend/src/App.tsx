@@ -8,6 +8,7 @@ import Login from "./pages/Login";
 import Cadastro from "./pages/Cadastro";
 import Entrar from "./pages/Entrar";
 import RecuperarSenha from "./pages/RecuperarSenha";
+import ResetSenha from "./pages/ResetSenha";
 import RegistrationForm from "./pages/RegistrationForm";
 import AuthCallback from "./pages/AuthCallback";
 import UnderConstruction from "./pages/UnderConstruction";
@@ -35,6 +36,7 @@ const App = () => (
             <Route path="/registration-form" element={<RegistrationForm />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/recuperar-senha" element={<RecuperarSenha />} />
+            <Route path="/reset-password" element={<ResetSenha />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/chat" element={<Chat />} />
             <Route path="/dashboard" element={<Dashboard />} />

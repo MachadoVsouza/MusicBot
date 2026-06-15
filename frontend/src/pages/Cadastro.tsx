@@ -51,17 +51,6 @@ const Cadastro = () => {
                 </>
               )}
             </button>
-
-            {/* <div className="w-full glass rounded-xl p-4 opacity-60">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 rounded-full bg-[hsla(0,0%,100%,0.1)]" />
-                <div>
-                  <p className="text-off-white text-sm">João Silva</p>
-                  <p className="text-slate text-xs">joao@email.com</p>
-                </div>
-              </div>
-              <p className="text-slate text-xs font-mono-label">Dados importados do Spotify</p>
-            </div> */}
           </>
         ) : (
           <>
@@ -85,7 +74,7 @@ const Cadastro = () => {
             </div>
 
             <button
-              onClick={() => navigate('/under-construction', { replace: true })}
+              onClick={() => navigate('/chat', { replace: true })}
               className="w-full py-3 px-4 rounded-xl bg-green text-off-white font-body font-semibold text-base hover:brightness-110 transition-all duration-200 hover:scale-[1.02]"
             >
               Entrar
