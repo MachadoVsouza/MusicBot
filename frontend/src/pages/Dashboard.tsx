@@ -25,9 +25,9 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { useDashboard } from '../hooks/useDashboard';
-import type { DashboardPeriod } from '../services/dashboardService';
-import { exportRelatorio } from '../services/dashboardService';
+import { useDashboard } from '@/hooks/useDashboard';
+import type { DashboardPeriod } from '@/types';
+import { exportRelatorio } from '@/services/dashboardService';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 
@@ -534,7 +534,9 @@ const Dashboard = () => {
 
 // ─── Sub-componentes ──────────────────────────────────────────────────────────
 
-const MetricCard = ({
+import { memo } from 'react';
+
+const MetricCard = memo(({
   icon: Icon,
   value,
   label,
@@ -555,9 +557,11 @@ const MetricCard = ({
     </div>
     <p className="mt-3 text-xs font-body text-slate">{helper}</p>
   </div>
-);
+));
 
-const EmptyTableRow = ({
+MetricCard.displayName = 'MetricCard';
+
+const EmptyTableRow = memo(({
   colSpan,
   title,
   description,
@@ -576,6 +580,8 @@ const EmptyTableRow = ({
       </div>
     </td>
   </tr>
-);
+));
+
+EmptyTableRow.displayName = 'EmptyTableRow';
 
 export default Dashboard;

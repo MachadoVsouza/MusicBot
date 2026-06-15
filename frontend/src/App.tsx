@@ -1,5 +1,5 @@
 import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
@@ -8,6 +8,7 @@ import Login from "./pages/Login";
 import Cadastro from "./pages/Cadastro";
 import Entrar from "./pages/Entrar";
 import RecuperarSenha from "./pages/RecuperarSenha";
+import ResetSenha from "./pages/ResetSenha";
 import RegistrationForm from "./pages/RegistrationForm";
 import AuthCallback from "./pages/AuthCallback";
 import UnderConstruction from "./pages/UnderConstruction";
@@ -21,9 +22,9 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
+    <ErrorBoundary>
     <TooltipProvider>
       <Toaster />
-      <Sonner />
       <AuthProvider>
         <BrowserRouter>
           <Routes>
@@ -35,6 +36,7 @@ const App = () => (
             <Route path="/registration-form" element={<RegistrationForm />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/recuperar-senha" element={<RecuperarSenha />} />
+            <Route path="/reset-password" element={<ResetSenha />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/chat" element={<Chat />} />
             <Route path="/dashboard" element={<Dashboard />} />
@@ -44,6 +46,7 @@ const App = () => (
         </BrowserRouter>
       </AuthProvider>
     </TooltipProvider>
+    </ErrorBoundary>
   </QueryClientProvider>
 );
 

@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import AuthCard from '../components/AuthCard';
-import MusicbotLogo from '../components/MusicbotLogo';
+import { useAuth } from '@/contexts/AuthContext';
+import AuthCard from '@/components/AuthCard';
+import MusicbotLogo from '@/components/MusicbotLogo';
 import { Loader2 } from 'lucide-react';
 
 const AuthCallback = () => {

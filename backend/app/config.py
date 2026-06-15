@@ -70,6 +70,13 @@ class Config:
     IFES_MODEL    = os.getenv("IFES_MODEL", "gemma3:12b")
     IFES_EMBEDDING_MODEL = os.getenv("IFES_EMBEDDING_MODEL", "nomic-embed-text")
 
+    # SMTP — envio de emails (recuperação de senha, etc.)
+    SMTP_HOST = os.getenv("SMTP_HOST", None)
+    SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
+    SMTP_USER = os.getenv("SMTP_USER", None)
+    SMTP_PASS = os.getenv("SMTP_PASS", None)
+    SMTP_FROM = os.getenv("SMTP_FROM", "noreply@musicbot.com")
+
 
 class DevelopmentConfig(Config):
     DEBUG = True

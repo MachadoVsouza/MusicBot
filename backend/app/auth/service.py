@@ -2,10 +2,14 @@ import hashlib
 import base64
 import secrets
 import urllib.parse
+import smtplib
+from datetime import timedelta
 import requests
-from werkzeug.security import generate_password_hash
+from email.mime.text import MIMEText
+from werkzeug.security import generate_password_hash, check_password_hash
 
 from flask import current_app
+from flask_jwt_extended import create_access_token, decode_token
 from .repository import AuthRepository
 from app.core.audit import registrar_auditoria
 
@@ -252,6 +256,70 @@ class AuthService:
             return {"success": True, "message": "Senha definida com sucesso!"}
         except Exception as e:
             return {"success": False, "message": str(e), "code": "password_update_error"}
+
+    def send_reset_email(self, email: str) -> bool:
+        """Gera um JWT de 1h e envia email com link de redefinição de senha.
+        Retorna True mesmo se o email não existir no banco (não vaza informação)."""
+        usuario = self.repo.get_usuario_by_email(email)
+        if not usuario:
+            # Não revela que o email não está cadastrado
+            return True
+
+        token = create_access_token(identity=email, expires_delta=timedelta(hours=1))
+        frontend_url = current_app.config.get("FRONTEND_URL", "http://127.0.0.1:8080")
+        reset_link = f"{frontend_url}/reset-password?token={token}"
+
+        smtp_host = current_app.config.get("SMTP_HOST")
+        if not smtp_host:
+            # Dev mode: imprime o link no console em vez de enviar email
+            print(f"[RESET PASSWORD] Link para {email}: {reset_link}")
+            return True
+
+        try:
+            msg = MIMEText(
+                f"Olá,\n\n"
+                f"Você solicitou a redefinição de senha no MusicBot.\n\n"
+                f"Clique no link abaixo para definir uma nova senha:\n"
+                f"{reset_link}\n\n"
+                f"Este link expira em 1 hora.\n\n"
+                f"Se você não solicitou isso, ignore este email.\n",
+                "plain",
+                "utf-8",
+            )
+            msg["Subject"] = "MusicBot — Redefinição de Senha"
+            msg["From"] = current_app.config["SMTP_FROM"]
+            msg["To"] = email
+
+            server = smtplib.SMTP(smtp_host, current_app.config["SMTP_PORT"])
+            server.starttls()
+            server.login(current_app.config["SMTP_USER"], current_app.config["SMTP_PASS"])
+            server.sendmail(current_app.config["SMTP_FROM"], email, msg.as_string())
+            server.quit()
+            return True
+        except Exception as e:
+            print(f"[RESET PASSWORD] Erro ao enviar email: {e}")
+            return False
+
+    def reset_password(self, token: str, new_password: str) -> dict:
+        """Valida o JWT de reset e atualiza a senha do usuário."""
+        if len(new_password) < 6:
+            return {"success": False, "message": "Senha deve ter no mínimo 6 caracteres", "code": "password_too_short"}
+
+        try:
+            decoded = decode_token(token)
+            email = decoded.get("sub")
+            if not email:
+                return {"success": False, "message": "Token inválido", "code": "invalid_token"}
+
+            password_hash = generate_password_hash(new_password, method='pbkdf2:sha256')
+            usuario = self.repo.get_usuario_by_email(email)
+            if not usuario:
+                return {"success": False, "message": "Usuário não encontrado", "code": "user_not_found"}
+
+            self.repo.update_user_password(usuario.spotify_id, password_hash)
+            return {"success": True, "message": "Senha redefinida com sucesso!"}
+        except Exception:
+            return {"success": False, "message": "Token inválido ou expirado", "code": "invalid_token"}
 
     def get_access_token(self) -> str | None:
         return self.repo.get_access_token_temp()

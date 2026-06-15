@@ -9,15 +9,9 @@ import { useAuth, authFetch } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import MusicbotLogo from '@/components/MusicbotLogo';
 
-const API = '/api';
-type MessageRole = 'user' | 'bot';
-type ConversationRating = 'positive' | 'negative' | null;
+import type { ConversationRating, Source, Midia, Message, Conversation, ChatApiResponse } from '@/types';
 
-interface Source { name: string; category: string; origin: string; date: string; version: string; excerpt: string; }
-interface Midia { tipo: string; preview_url: string; nome: string; artista: string; url: string; }
-interface Message { id: string; role: MessageRole; content: string; timestamp: string; sources?: Source[]; midia?: Midia | null; streaming?: boolean; respostaId?: number; }
-interface Conversation { id: string; title: string; updatedAt: string; messages: Message[]; }
-interface ChatApiResponse { id: string | number; titulo: string; updated_at: string; }
+const API = '/api';
 
 const DEFAULT_BOT_REPLY = 'No momento não foi possível gerar uma resposta. Tente novamente mais tarde.';
 const fmt = (iso?: string) => new Date(iso ?? Date.now()).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
@@ -153,7 +147,7 @@ const Chat = () => {
         const res = await authFetch(`${API}/chat/`);
         if (!res.ok) return;
         const data = await res.json();
-        setConversations((data.chats ?? []).map((c: ChatApiResponse) => ({ id: String(c.id), title: c.titulo, updatedAt: new Date(c.updated_at).toLocaleDateString('pt-BR'), messages: [] })));
+        setConversations((data.chats ?? []).map((c: ChatApiResponse): Conversation => ({ id: String(c.id), title: c.titulo, updatedAt: new Date(c.updated_at).toLocaleDateString('pt-BR'), messages: [] })));
       } catch { } finally { setHistoryLoading(false); }
     };
     loadChats();

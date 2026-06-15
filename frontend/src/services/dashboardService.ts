@@ -1,12 +1,9 @@
 import { authFetch } from '@/contexts/AuthContext';
+import type { DashboardPeriod, ExportFormat, DashboardMetrics, ChartPoint, DashboardFeedback, DashboardBug, DashboardReview } from '@/types';
 
 const API_BASE = '/api';
 
-export type DashboardPeriod = 'today' | 'week' | 'month';
-
 const API = '/api';
-
-export type ExportFormat = 'pdf' | 'csv' | 'json';
 
 export async function exportRelatorio(period: DashboardPeriod, format: ExportFormat = 'pdf'): Promise<void> {
   const jwt = localStorage.getItem('musicbot_jwt');
@@ -21,43 +18,6 @@ export async function exportRelatorio(period: DashboardPeriod, format: ExportFor
   a.download = `relatorio_dashboard_${period}.${format}`;
   a.click();
   URL.revokeObjectURL(url);
-}
-export type FeedbackTipo = 'like' | 'dislike' | 'report';
-export type ReviewRating = 'positive' | 'negative';
-
-export interface DashboardMetrics {
-  total_perguntas: number;
-  total_chats: number;
-  taxa_sucesso: number | null;
-  taxa_reformulacao: number | null;
-  total_likes: number;
-  total_dislikes: number;
-}
-
-export interface ChartPoint {
-  dia: string;
-  perguntas: number;
-}
-
-export interface DashboardFeedback {
-  id: string;
-  tipo: 'like' | 'dislike';
-  comentario: string;
-  conversa_titulo: string;
-  created_at: string;
-}
-
-export interface DashboardBug {
-  id: string;
-  comentario: string;
-  created_at: string;
-}
-
-export interface DashboardReview {
-  id: string;
-  usuario_id: string;
-  avaliacao: ReviewRating;
-  created_at: string;
 }
 
 async function apiFetch<T>(path: string): Promise<T> {

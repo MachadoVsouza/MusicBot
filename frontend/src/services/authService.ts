@@ -1,14 +1,9 @@
 import { authFetch } from '@/contexts/AuthContext';
+import type { UserProfile } from '@/types';
 
 const API_BASE = '/api';
 
-export interface UserProfile {
-  name: string;
-  email: string;
-  avatar: string;
-  plan: string;
-  followers: number;
-}
+export type { UserProfile };
 
 export interface RegisterData {
   email: string;
@@ -31,7 +26,6 @@ export async function getAuthenticatedUser(): Promise<UserProfile | null> {
     const res = await authFetch(`${API_BASE}/spotify/profile`);
     if (!res.ok) return null;
     const data = await res.json();
-    const profile = data.data ?? data;
     return {
       name: data.display_name ?? data.name ?? '',
       email: data.email ?? '',

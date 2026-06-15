@@ -1,7 +1,7 @@
-import { ReactNode } from 'react';
+import { memo, ReactNode } from 'react';
 import { motion } from 'framer-motion';
 
-const AuthCard = ({ children }: { children: ReactNode }) => (
+const AuthCard = memo(({ children }: { children: ReactNode }) => (
   <div className="min-h-screen flex items-center justify-center bg-black p-4">
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -12,6 +12,7 @@ const AuthCard = ({ children }: { children: ReactNode }) => (
       {children}
     </motion.div>
   </div>
-);
+));
 
+AuthCard.displayName = 'AuthCard';
 export default AuthCard;

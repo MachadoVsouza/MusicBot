@@ -85,6 +85,16 @@ services:
       # LangChain OpenAI precisa da API Key explicitamente para ChatOpenAI
       OPENAI_API_KEY:        ${IFES_API_KEY}
       OPENAI_BASE_URL:       ${IFES_BASE_URL:-https://workstations.chatbotintegracar.online}/v1
+      # SMTP — Gmail para recuperação de senha
+      # ⚠️ Use uma "Senha de app" do Google (não a senha da conta):
+      #    1. Acesse https://myaccount.google.com/security
+      #    2. Ative "Verificação em duas etapas"
+      #    3. Vá em "Senhas de app" e gere uma para o MusicBot
+      SMTP_HOST:              smtp.gmail.com
+      SMTP_PORT:              "587"
+      SMTP_USER:              musicbot2026@gmail.com
+      SMTP_PASS:              crrw uckr dvlb oigh
+      SMTP_FROM:              musicbot2026@gmail.com
     ports:
       - "5000:5000"
     depends_on:

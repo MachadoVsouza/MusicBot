@@ -1,21 +1,33 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import MusicbotLogo from '@/components/MusicbotLogo';
 import AuthCard from '@/components/AuthCard';
 import { Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 
-const RecuperarSenha = () => {
+const ResetSenha = () => {
   const navigate = useNavigate();
-  const [email, setEmail] = useState('');
+  const [searchParams] = useSearchParams();
+  const token = searchParams.get('token') || '';
+
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [sent, setSent] = useState(false);
+  const [success, setSuccess] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!email.trim()) {
-      setError('Email é obrigatório');
+    if (!password) {
+      setError('Senha é obrigatória');
+      return;
+    }
+    if (password.length < 6) {
+      setError('Senha deve ter no mínimo 6 caracteres');
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError('Senhas não conferem');
       return;
     }
 
@@ -23,18 +35,18 @@ const RecuperarSenha = () => {
     setError('');
 
     try {
-      const res = await fetch('/api/auth/forgot-password', {
+      const res = await fetch('/api/auth/reset-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim() }),
+        body: JSON.stringify({ token, password }),
       });
 
       const data = await res.json();
 
       if (res.ok && data.success) {
-        setSent(true);
+        setSuccess(true);
       } else {
-        setError(data.message || data.error || 'Erro ao enviar email. Tente novamente.');
+        setError(data.message || data.error || 'Erro ao redefinir senha.');
       }
     } catch {
       setError('Erro de conexão com o servidor');
@@ -43,29 +55,50 @@ const RecuperarSenha = () => {
     }
   };
 
+  if (!token) {
+    return (
+      <AuthCard>
+        <div className="flex flex-col items-center gap-5">
+          <MusicbotLogo />
+          <AlertCircle size={48} className="text-[#E91429]" />
+          <h2 className="font-display font-bold text-xl text-off-white">Link inválido</h2>
+          <p className="text-gray-light text-center text-sm">
+            O link de redefinição de senha é inválido. Solicite um novo link.
+          </p>
+          <button
+            onClick={() => navigate('/recuperar-senha')}
+            className="w-full py-3 px-4 rounded-xl bg-green text-off-white font-body font-semibold text-base hover:brightness-110 transition-all duration-200 hover:scale-[1.02]"
+          >
+            Solicitar novo link
+          </button>
+        </div>
+      </AuthCard>
+    );
+  }
+
   return (
     <AuthCard>
       <div className="flex flex-col items-center gap-5">
         <MusicbotLogo />
-        <h2 className="font-display font-bold text-xl text-off-white">Recuperar senha</h2>
+        <h2 className="font-display font-bold text-xl text-off-white">Redefinir senha</h2>
 
-        {sent ? (
+        {success ? (
           <div className="flex flex-col items-center gap-4 py-2">
             <CheckCircle size={48} className="text-green-bright" />
             <p className="text-off-white text-center text-sm max-w-xs">
-              Se o email estiver cadastrado, você receberá um link para redefinir sua senha.
+              Senha redefinida com sucesso!
             </p>
             <button
               onClick={() => navigate('/entrar')}
               className="w-full py-3 px-4 rounded-xl bg-green text-off-white font-body font-semibold text-base hover:brightness-110 transition-all duration-200 hover:scale-[1.02]"
             >
-              Voltar para o login
+              Fazer login
             </button>
           </div>
         ) : (
           <>
             <p className="text-gray-light text-center text-sm">
-              Informe seu email para receber as instruções de redefinição de senha.
+              Digite sua nova senha.
             </p>
 
             {error && (
@@ -77,13 +110,26 @@ const RecuperarSenha = () => {
 
             <form onSubmit={handleSubmit} className="w-full flex flex-col gap-4">
               <div className="space-y-2">
-                <label htmlFor="email" className="block text-sm font-medium text-slate">Email</label>
+                <label htmlFor="password" className="block text-sm font-medium text-slate">Nova senha</label>
                 <input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => { setEmail(e.target.value); setError(''); }}
-                  placeholder="seu@email.com"
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => { setPassword(e.target.value); setError(''); }}
+                  placeholder="Mínimo 6 caracteres"
+                  className="w-full px-4 py-3 rounded-lg bg-[#282828] border border-[#3E3E3E] text-off-white placeholder:text-slate/50 focus:outline-none focus:border-[#1DB954] focus:ring-1 focus:ring-[#1DB954] transition-all"
+                  disabled={loading}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="confirmPassword" className="block text-sm font-medium text-slate">Confirmar senha</label>
+                <input
+                  id="confirmPassword"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => { setConfirmPassword(e.target.value); setError(''); }}
+                  placeholder="Confirme sua nova senha"
                   className="w-full px-4 py-3 rounded-lg bg-[#282828] border border-[#3E3E3E] text-off-white placeholder:text-slate/50 focus:outline-none focus:border-[#1DB954] focus:ring-1 focus:ring-[#1DB954] transition-all"
                   disabled={loading}
                 />
@@ -97,10 +143,10 @@ const RecuperarSenha = () => {
                 {loading ? (
                   <>
                     <Loader2 size={20} className="animate-spin" />
-                    Enviando...
+                    Redefinindo...
                   </>
                 ) : (
-                  'Enviar instruções'
+                  'Redefinir senha'
                 )}
               </button>
             </form>
@@ -118,4 +164,4 @@ const RecuperarSenha = () => {
   );
 };
 
-export default RecuperarSenha;
+export default ResetSenha;

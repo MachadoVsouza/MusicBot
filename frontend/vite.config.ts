@@ -12,9 +12,7 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
-    hmr: {
-      overlay: false,
-    },
+    // HMR overlay removido para exibir erros de build no navegador durante desenvolvimento
     proxy: {
       '/api': {
         target: 'http://127.0.0.1:5000',
