@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { logout, getAuthenticatedUser } from '../services/authService';
-import { useAuth } from '../contexts/AuthContext';
-import AuthCard from '../components/AuthCard';
-import MusicbotLogo from '../components/MusicbotLogo';
+import { logout, getAuthenticatedUser } from '@/services/authService';
+import { useAuth } from '@/contexts/AuthContext';
+import AuthCard from '@/components/AuthCard';
+import MusicbotLogo from '@/components/MusicbotLogo';
 import { Construction, Loader2 } from 'lucide-react';
 
 const UnderConstruction = () => {

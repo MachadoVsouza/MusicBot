@@ -11,7 +11,7 @@ import {
   type DashboardMetrics,
   type DashboardPeriod,
   type DashboardReview,
-} from '../services/dashboardService';
+} from '@/services/dashboardService';
 
 interface DashboardData {
   metrics: DashboardMetrics | null;
