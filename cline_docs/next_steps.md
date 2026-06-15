@@ -1,18 +1,21 @@
-# MusicBot — Status Completo do Projeto
+# MusicBot — Status Completo do Projeto (atualizado 15/06/2026)
 
 ## ✅ Já implementado
 
-### Core
-- [x] Flask API com blueprints (auth, chat, spotify, rag, dashboard)
+### Infraestrutura
+- [x] Flask API com blueprints (auth, chat, spotify, rag, dashboard, llm_provider)
 - [x] PostgreSQL + pgvector
-- [x] JWT com flask-jwt-extended (migrado de session)
+- [x] JWT com flask-jwt-extended
 - [x] Repository Pattern + Service Layer
-- [x] Docker Compose (db, ollama, backend, frontend, tunnel)
+- [x] Docker Compose (db, ollama, backend, frontend, tunnel, pgadmin)
 
 ### Autenticação
 - [x] OAuth2 Spotify (PKCE) + login custom (email/senha)
 - [x] Refresh automático do token Spotify
 - [x] JWT no localStorage + authFetch
+- [x] Role-based access: user vs moderator
+- [x] SuperUsuários fixos por ID (SUPER_USER_IDS)
+- [x] **Recuperação de senha funcional** — JWT de 1h + envio email via SMTP (Gmail)
 
 ### Chat
 - [x] Streaming SSE com histórico
@@ -22,131 +25,84 @@
 - [x] Upload de arquivos (PDF, imagens, TXT)
 - [x] RAG com síntese (create_stuff_documents_chain)
 - [x] Memory do LangChain (DbChatMessageHistory)
-- [x] Rota de feedback (POST /chat/feedback)
+- [x] Feedback (like/dislike/report)
+- [x] **Markdown nas mensagens** (react-markdown + remark-gfm)
+- [x] **Preferências persistentes** (localStorage)
+- [x] **MiniPlayer** como componente independente
 
 ### LangChain Agents
 - [x] 16 tools do Spotify (busca, playlists, playback, fila, dispositivo)
-- [x] `return_direct=True` nas tools de execução
 - [x] Streaming real via AgentExecutor.stream()
-- [x] Resolução de dispositivo por nome
 
 ### Spotify API
 - [x] Perfil, playlists, top tracks/artists, saved tracks
-- [x] Busca de tracks e artistas
 - [x] Playback (play, pause, next, previous, fila)
 - [x] Dispositivos (listar, transferir, selecionar)
-- [x] Criar playlist + criar playlist inteligente (com lista)
-- [x] Adicionar na fila (individual e em lote)
 
 ### RAG
-- [x] Embeddings com Sentence Transformers (google/embeddinggemma-300m)
-- [x] Lazy loading thread-safe
+- [x] Embeddings com Sentence Transformers
 - [x] Chunking com RecursiveCharacterTextSplitter
 - [x] Busca vetorial com pgvector
 - [x] Fluxo de aprovação/rejeição de documentos
-- [x] Upload (texto, link, PDF)
-- [x] Síntese com create_stuff_documents_chain
+- [x] **Confirmação ao deletar documento**
 
-### Frontend
-- [x] Chat com streaming, histórico, mini player
-- [x] Profile com tracks recentes + tocar via API + seletor dispositivo
-- [x] Base de conhecimento (conectada ao backend)
-- [x] Dashboard com métricas
-- [x] Auth (login, callback, registro)
-- [x] Role-based access: user vs moderator (artista Spotify + IDs fixos)
-- [x] Proteção de Dashboard e Base de Conhecimento (só moderadores)
-- [x] Correção login com email/senha (Entrar.tsx → loginWithToken)
-- [x] Correção OAuth state_invalido (nginx + SameSite=Lax)
-- [x] SuperUsuários fixos por ID (SUPER_USER_IDS no config + fallback /me)
-- [x] pgAdmin4 no docker-compose (porta 5050)
-- [x] Botão "← Chat" no Dashboard
+### Frontend — Qualidade de Código
+- [x] **TypeScript strict mode** (zero erros)
+- [x] **Chat.tsx decomposto** em 7 componentes (MiniPlayer, MessageBubble, LLMProviderToggle, CommandsModal, PreferencesModal, ExportMenu, PlayOnSpotify)
+- [x] **Centralização de tipos** em `src/types/index.ts`
+- [x] **Padronização de imports** com `@/`
+- [x] **Fonte unificada** (Figtree)
+- [x] **ErrorBoundary global**
+- [x] **memo()** em componentes puros (MusicbotLogo, AuthCard, MetricCard, EmptyTableRow)
+- [x] **Toast unificado** (shadcn/ui, removido Sonner)
+- [x] **App.css removido** (boilerplate Vite)
+- [x] **Favicon corrigido** + lang="pt-BR"
+- [x] PlayOnSpotify extraído para componente próprio
+- [x] Keyframes movidos para `index.css`
 
 ### Extras
 - [x] MCP Server (13 tools do Spotify)
 - [x] Cloudflare Tunnel (container Docker com profile)
-- [x] Scopes de playback adicionados
-- [x] Moderadores fixos (SUPER_USER_IDS no config)
+- [x] pgAdmin4 no docker-compose (porta 5050)
+- [x] Toggle de provedor LLM (local/ifes)
 
 ---
 
 ## ❌ Pendente
 
-### 🔴 Prioridade Alta
+### 🔴 Prioridade Alta — Backend
 1. **Testar auto-detecção de artista Spotify**
-   - Fazer login com conta artista Spotify real
-   - Validar criação automática de SuperUsuario
-
-2. **Prune do Ollama / servidor IFES**
-   - Modelo gemma4 pesado
-   - Opção: trocar por modelo menor (gemma:2b, qwen:4b, llama3.2)
-   - Ou conectar com servidor do IFES
+2. **Prune do Ollama / servidor IFES** — modelo gemma4 pesado
+3. **Refatorar agents/tools.py** — 19 tools aninhadas, zero testabilidade
 
 ### 🟡 Prioridade Média
-3. **Sistema de recomendação**
-   - Usar `/v1/recommendations` do Spotify
-   - Integrar com ReccoBeats
-   - Tool `recomendar_musicas(seed_tracks)`
-
-4. **Wikipedia automático no RAG**
-   - Quando RAG não achar info, baixar artigo da Wikipedia
-   - Submeter como documento pendente
-   - Tool `buscar_wikipedia(tema)`
+4. **Sistema de recomendação** — `/v1/recommendations` do Spotify + ReccoBeats
+5. **Wikipedia automático no RAG** — tool `buscar_wikipedia(tema)`
+6. **Profile.tsx com Tailwind** — migrar CSS inline para classes utilitárias
 
 ### 🟢 Prioridade Baixa / Futuro
-5. **Integração MusicBrainz/Last.fm/Genius**
-   - Dados abertos sobre artistas
-   - Letras de música
-   - Tags e gêneros
-
-6. **Melhorias no Profile.tsx**
-   - Ver estado atual do playback
-   - Mostrar o que está tocando agora
-   - Controles (play/pause/next/prev) direto na página
+7. **Integração MusicBrainz/Last.fm/Genius**
+8. **Lazy loading nas rotas** — `React.lazy()` para Chat, Dashboard, Profile
+9. **Skeleton loading nas transições de rota**
 
 ---
 
 ## 💡 Sugestões de Melhoria no Código
 
-### Backend
+### Backend (pendentes)
 
-#### 1. `auth_guard.py` — _is_token_valid faz request externo a cada chamada
-**Problema**: Toda requisição protegida faz `GET /v1/me` no Spotify pra ver se o token ainda é válido. Isso adiciona latência e consome rate limit.
-**Sugestão**: Usar cache temporal (ex: 5 min) ou verificar apenas se o token não está nulo/vazio, e confiar no refresh se der 401.
+| # | Problema | Local | Sugestão |
+|---|----------|-------|----------|
+| 1 | Token validado a cada requisição | `auth_guard.py` | Cache TTL 5min |
+| 2 | Lógica duplicada stream/não-stream | `chat/service.py` | Extrair método privado |
+| 3 | 19 tools aninhadas | `agents/tools.py` | Separar em classes/arquivos |
+| 4 | Sessões DB sequenciais | Repositories | Transação única |
+| 5 | MCP server sem refresh token | `mcp_server.py` | OAuth flow |
 
-#### 2. `chat/service.py` — Duplicação entre enviar_mensagem e stream_mensagem
-**Problema**: Lógica de RAG + agent duplicada nos dois métodos (~80 linhas repetidas).
-**Sugestão**: Extrair lógica comum (detectar_intenção, buscar RAG, etc.) para métodos privados compartilhados.
+### Frontend (pendentes)
 
-#### 3. `agents/tools.py` — Resolver dispositivo chama API a cada chamada
-**Problema**: `_resolver_dispositivo()` chama `svc.get_devices()` (API Spotify) toda vez que toca uma música. Se o usuário falar "toca tal música" sem especificar dispositivo, faz request desnecessário.
-**Sugestão**: Cachear lista de dispositivos com TTL (ex: 30s) ou só resolver dispositivo se o usuário mencionou explicitamente.
-
-#### 4. `rag/sintese.py` — Chain não usa streaming
-**Problema**: `create_stuff_documents_chain` usa `get_llm()` com `stream=False`, resposta vem completa. No `stream_mensagem()` do ChatService, o RAG com síntese não está sendo usado (só o modo antigo com chunks crus).
-**Sugestão**: Integrar `RagSintese` no `stream_mensagem()` também, ou criar versão streaming.
-
-#### 5. `chat/memory.py` — DbChatMessageHistory é read-only
-**Problema**: O `DbChatMessageHistory` carrega do banco mas as mensagens adicionadas (add_message) ficam só em memória. Não persiste no banco.
-**Sugestão**: Como as mensagens já são salvas pelo ChatRepository, o DbChatMessageHistory funciona bem como cache de leitura. Se for usar RunnableWithMessageHistory, pensar em como sincronizar.
-
-#### 6. `chat/repository.py` — Sessões do banco abertas sequencialmente
-**Problema**: Cada método abre e fecha sessão. Encadear get_historico + salvar_pergunta + salvar_resposta = 3 sessões.
-**Sugestão**: Um método `salvar_pergunta_e_resposta()` que faz tudo em uma transação.
-
-#### 7. `mcp_server.py` — Token fixo por env
-**Problema**: `SPOTIFY_ACCESS_TOKEN` via env var. Token expira em 1h e o MCP server não faz refresh.
-**Sugestão**: Implementar OAuth flow ou receber token via argumento.
-
-### Frontend
-
-#### 8. `Chat.tsx` — Muito grande (516 linhas)
-**Problema**: Lógica de streaming, histórico, feedback, export, settings tudo no mesmo componente.
-**Sugestão**: Extrair MiniPlayer, MessageList, FeedbackModal, DeviceSelector em componentes separados.
-
-#### 9. `Profile.tsx` — Estilos inline
-**Problema**: Objeto `styles` gigante com CSS inline. Difícil de manter.
-**Sugestão**: Migrar para Tailwind classes ou CSS modules.
-
-#### 10. `BaseConhecimento.tsx` — super_usuario_id hardcoded → ✅ RESOLVIDO
-**Problema**: `super_usuario_id: 1` fixo no submit. Se não existir SuperUsuario com ID 1 no banco, a requisição falha.
-**Solução**: Usa `user.superUsuarioId` do AuthContext (obtido via `/api/auth/me`). **Resolvido em 07/06/2026.**
+| # | Problema | Local | Sugestão |
+|---|----------|-------|----------|
+| 6 | CSS inline (442 linhas) | `Profile.tsx` | Migrar para Tailwind |
+| 7 | Sem code splitting | `App.tsx` | `React.lazy()` |
+| 8 | Sem skeleton loading | Rotas | `Suspense` + fallback |
