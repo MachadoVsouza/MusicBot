@@ -153,7 +153,7 @@ const Chat = () => {
         const res = await authFetch(`${API}/chat/`);
         if (!res.ok) return;
         const data = await res.json();
-        setConversations((data.chats ?? []).map((c: ChatApiResponse) => ({ id: String(c.id), title: c.titulo, updatedAt: new Date(c.updated_at).toLocaleDateString('pt-BR'), messages: [] })));
+        setConversations((data.chats ?? []).map((c: ChatApiResponse): Conversation => ({ id: String(c.id), title: c.titulo, updatedAt: new Date(c.updated_at).toLocaleDateString('pt-BR'), messages: [] })));
       } catch { } finally { setHistoryLoading(false); }
     };
     loadChats();

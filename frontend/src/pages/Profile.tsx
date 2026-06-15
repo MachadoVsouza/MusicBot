@@ -47,7 +47,7 @@ const deviceIcon = (type: string) => {
   }
 };
 
-const PlayOnSpotify = ({ track, devices, selectedDeviceId, onSelectDevice }: { track: Track; devices: Device[]; selectedDeviceId: string | null; onSelectDevice: (id: string | null) => void }) => {
+const PlayOnSpotify = ({ track, selectedDeviceId }: { track: Track; selectedDeviceId: string | null }) => {
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
@@ -348,7 +348,7 @@ export default function Profile() {
                       <span style={styles.trackArtist}>{track.artist} · {track.album}</span>
                     </div>
                     <div style={styles.trackMeta}>
-                      <PlayOnSpotify track={track} devices={devices} selectedDeviceId={selectedDeviceId} onSelectDevice={setSelectedDeviceId} />
+                      <PlayOnSpotify track={track} selectedDeviceId={selectedDeviceId} />
                       <span style={styles.trackTime}>
                         <span style={styles.clockIcon}>🕐</span> {timeAgo(track.played_at)}
                       </span>

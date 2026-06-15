@@ -31,7 +31,6 @@ export async function getAuthenticatedUser(): Promise<UserProfile | null> {
     const res = await authFetch(`${API_BASE}/spotify/profile`);
     if (!res.ok) return null;
     const data = await res.json();
-    const profile = data.data ?? data;
     return {
       name: data.display_name ?? data.name ?? '',
       email: data.email ?? '',

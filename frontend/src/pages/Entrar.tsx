@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { loginWithPassword, redirectToSpotifyAuth } from '@/services/authService';
+import { loginWithPassword } from '@/services/authService';
 import { useAuth } from '@/contexts/AuthContext';
 import MusicbotLogo from '@/components/MusicbotLogo';
 import AuthCard from '@/components/AuthCard';
@@ -59,13 +59,6 @@ const Entrar = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleSpotifyLogin = () => {
-    setLoading(true);
-    setError(null);
-    localStorage.setItem('auth_flow', 'login');
-    redirectToSpotifyAuth();
   };
 
   return (
