@@ -26,7 +26,7 @@ import {
   YAxis,
 } from 'recharts';
 import { useDashboard } from '@/hooks/useDashboard';
-import type { DashboardPeriod } from '@/services/dashboardService';
+import type { DashboardPeriod } from '@/types';
 import { exportRelatorio } from '@/services/dashboardService';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';

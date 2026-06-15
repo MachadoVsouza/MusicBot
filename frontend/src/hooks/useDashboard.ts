@@ -5,13 +5,8 @@ import {
   fetchFeedbacks,
   fetchMetrics,
   fetchReviews,
-  type ChartPoint,
-  type DashboardBug,
-  type DashboardFeedback,
-  type DashboardMetrics,
-  type DashboardPeriod,
-  type DashboardReview,
 } from '@/services/dashboardService';
+import type { ChartPoint, DashboardBug, DashboardFeedback, DashboardMetrics, DashboardPeriod, DashboardReview } from '@/types';
 
 interface DashboardData {
   metrics: DashboardMetrics | null;

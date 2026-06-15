@@ -1,14 +1,9 @@
 import { authFetch } from '@/contexts/AuthContext';
+import type { UserProfile } from '@/types';
 
 const API_BASE = '/api';
 
-export interface UserProfile {
-  name: string;
-  email: string;
-  avatar: string;
-  plan: string;
-  followers: number;
-}
+export type { UserProfile };
 
 export interface RegisterData {
   email: string;

@@ -6,19 +6,8 @@ import {
   useEffect,
   ReactNode,
 } from 'react';
-import type { UserProfile } from '@/services/authService';
-
-export type UserRole = 'user' | 'moderator';
-
-export interface User {
-  name: string;
-  email: string;
-  avatar: string;
-  role: UserRole;
-  plan?: string;
-  followers?: number;
-  superUsuarioId?: number | null;
-}
+import type { UserProfile } from '@/types';
+import type { User, UserRole } from '@/types';
 
 interface AuthContextType {
   user: User | null;
@@ -35,6 +24,8 @@ interface MeResponse {
   role: 'user' | 'moderator';
   super_usuario_id: number | null;
 }
+
+export type { UserRole };
 
 const TOKEN_KEY = 'musicbot_jwt';
 

@@ -3,24 +3,9 @@ import { authFetch } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { ExternalLink, Play, Smartphone, Monitor, Speaker, ChevronDown } from "lucide-react";
 
+import type { UserProfile, Track, Device } from '@/types';
+
 const API = "/api";
-
-interface UserProfile {
-  name: string;
-  email: string;
-  avatar: string;
-  plan: string;
-  followers: number;
-}
-
-interface Track {
-  name: string;
-  artist: string;
-  album: string;
-  played_at: string;
-  preview_url: string | null;
-  spotify_url: string | null;
-}
 
 function timeAgo(dateStr: string): string {
   const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
@@ -31,13 +16,6 @@ function timeAgo(dateStr: string): string {
 }
 
 // ── Botão "Tocar no Spotify" ──────────────────────────────────────────────────
-interface Device {
-  id: string;
-  name: string;
-  type: string;
-  is_active: boolean;
-}
-
 const deviceIcon = (type: string) => {
   switch (type.toLowerCase()) {
     case "smartphone": return <Smartphone size={12} />;
