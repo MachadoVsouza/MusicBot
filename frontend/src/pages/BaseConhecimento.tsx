@@ -199,6 +199,7 @@ const BaseConhecimento = () => {
   };
 
   const handleDeletar = async (id: number) => {
+    if (!window.confirm('Tem certeza que deseja excluir este documento? Esta ação não pode ser desfeita.')) return;
     try {
       await authFetch(`${API}/rag/documentos/${id}`, { method: 'DELETE' });
       carregarDocs();

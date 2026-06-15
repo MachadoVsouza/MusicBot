@@ -1,6 +1,7 @@
+import { memo } from 'react';
 import { Music } from 'lucide-react';
 
-const MusicbotLogo = ({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) => {
+const MusicbotLogo = memo(({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) => {
   const sizes = { sm: 'text-xl', md: 'text-3xl', lg: 'text-5xl' };
   const iconSizes = { sm: 20, md: 28, lg: 40 };
 
@@ -14,6 +15,7 @@ const MusicbotLogo = ({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) => {
       </span>
     </div>
   );
-};
+});
 
+MusicbotLogo.displayName = 'MusicbotLogo';
 export default MusicbotLogo;
