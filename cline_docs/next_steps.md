@@ -1,4 +1,4 @@
-# MusicBot — Status Completo do Projeto (atualizado 15/06/2026)
+# MusicBot — Status Completo do Projeto (atualizado 19/06/2026)
 
 ## ✅ Já implementado
 
@@ -65,6 +65,10 @@
 - [x] Cloudflare Tunnel (container Docker com profile)
 - [x] pgAdmin4 no docker-compose (porta 5050)
 - [x] Toggle de provedor LLM (local/ifes)
+- [x] Documentação de tecnologias (tecnologias.md)
+- [x] Consolidação de docs de contexto (bugs, decisões, arquitetura)
+- [x] Wikipedia script (dowloadWikipedia.py)
+- [x] Gunicorn como servidor WSGI de produção
 
 ---
 

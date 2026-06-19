@@ -1,4 +1,58 @@
-# Bugs Corrigidos
+# Bugs Corrigidos — MusicBot
+
+## [15/06/2026] — Fases 1-8: Refatoração Completa do Frontend
+
+### Fase 1 — Configuração
+- **Favicon quebrado**: `href="/frontend/public/green-icon-music-bot.svg"` → corrigido para `href="/green-icon-music-bot.svg"`
+- **Lang errado**: `lang="en"` → `lang="pt-BR"`
+- **Nome do projeto**: `"vite_react_shadcn_ts"` → `"musicbot"` no `package.json`
+- **HMR overlay desabilitado**: `overlay: false` removido do `vite.config.ts`
+- **ESLint**: `no-unused-vars: "off"` → `"warn"`
+
+### Fase 2 — Bugs
+- **Typo CSS**: `bg-greentext-off-white` (falta espaço) → `bg-green text-off-white` no `RegistrationForm.tsx`
+- **Redirecionamento errado**: Botão "Entrar" no Cadastro ia para `/under-construction` → `/chat`
+- **404 em inglês**: "Oops! Page not found" → "Página não encontrada"
+- **Código morto**: Bloco comentado (perfil fake João Silva) removido do `Cadastro.tsx`
+- **RecuperarSenha fake**: `handleSubmit` só fazia `setSent(true)` sem chamar API → implementada funcionalidade completa (JWT + SMTP)
+
+### Fase 3 — TypeScript Strict Mode
+- **7 erros de tipagem** corrigidos em 5 arquivos:
+  - `AuthContext.tsx`: `React` import não usado
+  - `Cadastro.tsx`: `useEffect` import não usado
+  - `Entrar.tsx`: `handleSpotifyLogin` função não usada, `redirectToSpotifyAuth` import não usado
+  - `Profile.tsx`: `devices` e `onSelectDevice` props não usadas no `PlayOnSpotify`
+  - `authService.ts`: variável `profile` não usada
+  - `Chat.tsx`: `any[]` implícito no map → adicionado `: Conversation`
+
+### Fase 4 — Padronização
+- **Imports inconsistentes**: 4 arquivos com `'../'` → padronizados para `@/`
+- **Toast duplicado**: `Sonner` + `shadcn/ui toast` coexistindo → removido Sonner
+- **Fontes divergentes**: `Syne`/`DM Sans`/`JetBrains Mono` no config vs `Figtree` no CSS → unificado para Figtree
+- **App.css boilerplate**: Código Vite nunca usado (`.logo`, `.card`, `logo-spin`) → arquivo deletado
+
+### Fase 5 — Tipos Centralizados
+- **Tipos duplicados**: `UserProfile` em 2 arquivos, `Message`/`Conversation`/etc no Chat.tsx, `DashboardMetrics`/etc no dashboardService.ts → todos movidos para `src/types/index.ts`
+- **7 arquivos** atualizados para importar de `@/types`
+
+### Fase 6 — Decomposição
+- **Chat.tsx monolítico**: 647 linhas com MiniPlayer, modais, toggle, export tudo no mesmo arquivo → decomposto em 6 componentes
+- **PlayOnSpotify inline**: Extraído de `Profile.tsx` para `src/components/chat/PlayOnSpotify.tsx`
+- **Keyframes inline**: `wave`, `pulse`, `scrollAnim`, `glowAnim` injetados via `<style>` em `Profile.tsx` → movidos para `index.css`
+
+### Recuperação de Senha
+- **Erro 500**: `create_access_token(expires_delta=3600)` → `timedelta(hours=1)` (parâmetro espera `timedelta`, não `int`)
+- **Erro 502**: Container backend recriado com novo IP, nginx com cache do IP antigo → `docker compose restart frontend`
+
+### Fase 7 — UX
+- **Mensagens sem formatação**: `<p className="whitespace-pre-wrap">` → `<ReactMarkdown>` com suporte a negrito, código, listas, links
+- **Preferências não persistidas**: `audioEnabled`/`compactMode` perdiam ao recarregar → salvas em `localStorage` (`musicbot_prefs`)
+- **Deletar sem confirmação**: Exclusão de documento silenciosa → `window.confirm()` antes de deletar
+
+### Fase 8 — Performance
+- **Componentes sem memo**: `MusicbotLogo`, `AuthCard`, `MetricCard`, `EmptyTableRow` → `React.memo()` adicionado com `displayName`
+
+---
 
 ## [07/06/2026] - Sessão 3: User Roles, OAuth Session, Login Custom
 
@@ -24,6 +78,25 @@
 - **Arquivo**: `frontend/src/pages/BaseConhecimento.tsx`
 - **Problema**: `super_usuario_id: 1` fixo no submit de documentos. Se não existir SuperUsuario com ID 1 no banco, falha.
 - **Solução**: Usa `user.superUsuarioId` do AuthContext (obtido via `/api/auth/me`)
+
+### pgAdmin4 adicionado ao docker-compose
+- Serviço `pgadmin` (dpage/pgadmin4) na porta `5050` com volume persistente
+
+## [06/06/2026] - Sessão: Correção de Login
+
+### Redirect URI errada no docker-compose.yml
+- **Arquivo**: `docker-compose.yml`
+- **Problema**: `SPOTIFY_REDIRECT_URI` estava `http://127.0.0.1:8080/auth/callback` (faltando `/api/`)
+- **Consequência**: Spotify redirecionava para `/auth/callback`, que não batia com o `location /api/` do nginx
+- **Correção**: Alterado para `http://127.0.0.1:8080/api/auth/callback`
+
+### Coluna llm_provider inexistente no banco
+- **Arquivo**: `backend/app/database/models.py`
+- **Problema**: O modelo definia a coluna `llm_provider` mas a tabela no PostgreSQL não tinha
+- **Erro**: `psycopg2.errors.UndefinedColumn: column usuario.llm_provider does not exist`
+- **Correção**: Banco recriado com `docker compose down -v && docker compose up --build -d`
+
+---
 
 ## [05/06/2026] - Sessão 2: Playback, Streaming e JWT
 

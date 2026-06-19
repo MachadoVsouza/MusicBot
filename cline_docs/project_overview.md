@@ -4,20 +4,20 @@
 Sistema de recomendação musical com chatbot inteligente, usando RAG (Retrieval-Augmented Generation) para consulta a base de conhecimento musical e LangChain Agents para interação com a API do Spotify em tempo real.
 
 ## Stack
-- **Frontend**: React + TypeScript + Vite + Tailwind CSS + shadcn/ui
-- **Backend**: Python + Flask + SQLAlchemy + LangChain
-- **Database**: PostgreSQL com pgvector (via Docker)
-- **LLM**: Ollama (gemma4:e4b) local com GPU
-- **IA/ML**: LangChain + Agents + RAG (Sentence Transformers) + Spotify API
-- **Auth**: JWT (flask-jwt-extended) + OAuth2 Spotify + Login custom (email/senha)
-- **Containerização**: Docker Compose (db, ollama, backend, frontend, tunnel)
+- **Frontend**: React 18 + TypeScript 5.8 (strict) + Vite 7 + Tailwind CSS 3.4 + shadcn/ui (Radix UI)
+- **Backend**: Python 3.12 + Flask 3 + SQLAlchemy 2 + LangChain 1.x + Gunicorn
+- **Database**: PostgreSQL 16 com pgvector (via Docker) + pgAdmin4
+- **LLM**: Ollama (gemma4:e4b) local com GPU + IFES Colatina (provider remoto alternativo)
+- **IA/ML**: LangChain Agents (tool calling) + RAG (Sentence Transformers / Ollama Embeddings) + Spotify API
+- **Auth**: JWT (flask-jwt-extended) + OAuth2 Spotify (PKCE) + Login custom (email/senha) + Recuperação de senha (SMTP/Gmail)
+- **Containerização**: Docker Compose (db, ollama, ollama-init, backend, frontend, pgadmin, tunnel)
 
 ## Estrutura Principal
-- `backend/` - API Flask com módulos organizados (auth, chat, spotify, rag, dashboard, agents, langchain, reccobeats)
+- `backend/` - API Flask com módulos organizados (auth, chat, spotify, rag, dashboard, agents, langchain, reccobeats, llm_provider)
 - `frontend/` - SPA React com páginas de dashboard, chat, autenticação, perfil, base de conhecimento
-- `docker-compose.yml` - Orquestração dos serviços (db, ollama, ollama-init, backend, frontend, tunnel)
-- `tunnel/` - Container Cloudflare Tunnel para link público temporário
-- `cline_docs/` - Memória do projeto (decisões, bugs, próximos passos)
+- `docker-compose.yml` - Orquestração de 6 serviços (db, ollama, ollama-init, backend, frontend, pgadmin, tunnel via profile)
+- `tunnel/` - Container Cloudflare Tunnel (cloudflared) para link público temporário
+- `cline_docs/` - Memória do projeto (decisões, bugs, próximos passos, arquitetura, tecnologias)
 
 ## Funcionalidades Principais
 - **Chat inteligente** com streaming SSE, detecção de intenção Spotify, RAG com síntese (create_stuff_documents_chain) e fallback para LLM puro

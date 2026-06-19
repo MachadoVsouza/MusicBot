@@ -6,25 +6,33 @@ Frontend (React + Vite, Porta 8080)
     ↕ HTTP/JSON (JWT Bearer Token via authFetch)
 Nginx (proxy reverso, desliga buffering SSE)
     ↕
-Backend (Flask API, Porta 5000)
+Backend (Flask API + Gunicorn, Porta 5000)
     ↕ SQLAlchemy + pgvector
-PostgreSQL (Docker, Porta 5432)
+PostgreSQL (Docker pgvector/pgvector:pg16, Porta 5432)
     ↕
 Serviços Externos:
 ├── Spotify API (OAuth2 + REST + Player API)
-├── Ollama (LLM local, Porta 11434)
+├── Ollama (LLM local, Porta 11434, GPU via nvidia driver)
+├── IFES Colatina (LLM provider remoto alternativo, OpenAI-compatible API)
 ├── HuggingFace (Embeddings via Sentence Transformers)
-└── ReccoBeats API (recomendação musical)
+├── ReccoBeats API (recomendação musical)
+├── Wikipedia API (extração de artigos para base RAG)
+└── SMTP/Gmail (envio de emails para recuperação de senha)
 
-Serviços Internos:
-├── Auth (JWT + OAuth Spotify + Login custom)
-├── Chat (LangChain + RAG + Agents)
+Serviços Internos (Flask Blueprints):
+├── Auth (JWT + OAuth Spotify + Login custom + Recuperação de senha)
+├── Chat (LangChain + RAG + Agents, streaming SSE)
 ├── Spotify API Client (perfil, playlists, músicas, playback)
 ├── Dashboard Analytics (estatísticas do usuário)
 ├── RAG Engine (embeddings, busca vetorial, chunking, síntese)
 ├── LangChain Agents (tool calling com Spotify, 16 tools)
-├── MCP Server (13 tools via protocolo MCP)
+├── LLM Provider (dual: local Ollama / remoto IFES)
+├── MCP Server (13 tools via protocolo MCP, standalone)
 └── Recommender Engine (ReccoBeats)
+
+Ferramentas Auxiliares:
+├── pgAdmin4 (Docker, Porta 5050, interface gráfica para PostgreSQL)
+└── Cloudflare Tunnel (container com profile, link público trycloudflare.com)
 ```
 
 ## Módulos do Backend
@@ -80,6 +88,12 @@ Serviços Internos:
 - Motor de recomendação musical via API externa
 - Audio features integration
 
+### llm_provider/
+- Provider dual: local (Ollama) e remoto (IFES Colatina via OpenAI-compatible API)
+- Toggle de provedor via endpoint `/api/llm-provider/toggle`
+- Fallback automático: se provider não reconhecido, usa local
+- Embeddings via Ollama local (`/api/embeddings`) ou IFES remoto
+
 ### langchain/
 - Cliente Ollama unificado com configuração de stream
 - Wrapper de streaming e resposta
@@ -90,6 +104,12 @@ Serviços Internos:
 - 13 tools do Spotify expostas via protocolo MCP
 - Para usar com Claude Desktop, Insomnia, etc.
 - Token via env var SPOTIFY_ACCESS_TOKEN
+
+### Serviços Auxiliares
+- **pgAdmin4** — interface gráfica web para PostgreSQL (porta 5050)
+- **Cloudflare Tunnel** — link público temporário via cloudflared (profile `tunnel`)
+- **SMTP/Gmail** — envio de emails para recuperação de senha
+- **Wikipedia** — script `dowloadWikipedia.py` para extração de artigos
 
 ## Padrões
 - Repository Pattern para acesso a dados

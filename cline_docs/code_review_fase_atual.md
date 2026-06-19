@@ -1,4 +1,4 @@
-# Revisão Geral do Código — MusicBot (15/06/2026)
+# Revisão Geral do Código — MusicBot (19/06/2026)
 
 ## Nota Geral: 8.0/10 (↑ de 6.5)
 
@@ -11,7 +11,14 @@ Pontos fracos: orientação a objeto inconsistente no backend, Profile.tsx ainda
 
 ### ✅ Nota 8/10 — `auth/`, `spotify/`, `reccobeats/`
 Service + Repository bem separados. SpotifyService injeta SpotifyRepository. Fácil de testar.
-- **Novo:** Recuperação de senha implementada (`POST /auth/forgot-password`, `POST /auth/reset-password`) com JWT de 1h e envio de email via SMTP (Gmail configurável).
+- **Novo:** Recuperação de senha implementada (`POST /auth/forgot-password`, `POST /auth/reset-password`) com JWT de 1h e envio de email via SMTP (Gmail configurável). Testado e funcional.
+- **Novo:** Gunicorn como servidor WSGI em produção (2 workers, timeout 120s).
+
+### ✅ Nota 7/10 — `llm_provider/`
+- Provider dual implementado: local (Ollama/ChatOllama) + remoto (IFES/ChatOpenAI).
+- Toggle via `POST /api/llm-provider/toggle`.
+- Fallback automático para local se provider não reconhecido.
+- Pendente: Strategy Pattern com classe abstrata para facilitar adição de novos providers.
 
 ### ✅ Nota 7/10 — `rag/`
 RagService + RagRepository + RagSintese + RagClient.
@@ -19,9 +26,6 @@ RagService + RagRepository + RagSintese + RagClient.
 
 ### ⚠️ Nota 5/10 — `chat/`
 - `ChatService` **acoplado**: instancia `ChatRepository`, `OllamaRepository`, `RagService`, `RagSintese` direto no `__init__`
-
-### ⚠️ Nota 5/10 — `llm_provider/`
-- Provider atual: 2 arquivos com funções soltas. Sugestão: Strategy Pattern com classe abstrata.
 
 ### ⚠️ Nota 4/10 — `agents/`
 - `tools.py`: 314 linhas, 19 tools aninhadas, zero testabilidade individual.

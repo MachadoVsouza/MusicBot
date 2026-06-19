@@ -69,6 +69,30 @@
 - Implementado: devices (listar/transferir), play (track/context), pause, next, previous, queue
 - Resolução de dispositivo por nome via `_resolver_dispositivo()` no tools.py
 
+## Recuperação de Senha (SMTP/Gmail)
+- Endpoints: `POST /auth/forgot-password` e `POST /auth/reset-password`
+- JWT de 1h (`timedelta(hours=1)`) para reset token
+- Envio via SMTP (Gmail) com App Password (não a senha da conta)
+- Configurável via env vars: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`
+- Frontend: `RecuperarSenha.tsx` (solicita email) + `ResetSenha.tsx` (nova senha + token)
+
+## LLM Provider Dual (Local + Remoto)
+- Provider local: Ollama com `ChatOllama` do langchain-ollama, modelo `gemma4:e4b`
+- Provider remoto (IFES Colatina): OpenAI-compatible API via `ChatOpenAI` do langchain-openai
+- Toggle via `POST /api/llm-provider/toggle` com body `{"provider": "local"|"ifes"}`
+- Configuração no `docker-compose.yml`: `LLM_PROVIDER`, `IFES_BASE_URL`, `IFES_API_KEY`, `IFES_MODEL`
+- `OPENAI_API_KEY` e `OPENAI_BASE_URL` setados para compatibilidade com `ChatOpenAI`
+- Fallback: se provider não reconhecido, usa local
+
+## Frontend — UX e Componentização
+- **Markdown no chat**: `react-markdown` + `remark-gfm` para suporte a negrito, código, listas, links nas mensagens
+- **Preferências persistentes**: `audioEnabled`/`compactMode` salvos em `localStorage` (`musicbot_prefs`)
+- **Decomposição Chat.tsx**: 7 componentes extraídos (`MiniPlayer`, `MessageBubble`, `LLMProviderToggle`, `CommandsModal`, `PreferencesModal`, `ExportMenu`, `PlayOnSpotify`)
+- **Toast unificado**: shadcn/ui toast (removido Sonner)
+- **Fonte unificada**: Figtree no `tailwind.config.ts`
+- **ErrorBoundary global** envolvendo toda a árvore de rotas
+- **memo()**: `MusicbotLogo`, `AuthCard`, `MetricCard`, `EmptyTableRow` com `React.memo()`
+
 ## MCP Server
 - Servidor MCP standalone (não roda dentro do Flask)
 - 13 tools do Spotify expostas: buscar/tocar música, pausar, próximo/anterior, dispositivos, playlists, artista, recentes, top músicas
@@ -79,6 +103,16 @@
 - Usa cloudflared para criar túnel trycloudflare.com gratuito
 - **Limitação**: A cada novo link, precisa adicionar redirect URI no Dashboard do Spotify Developer
 - Nginx configurado com `proxy_buffering off` e `chunked_transfer_encoding on` para SSE
+
+## pgAdmin4
+- Serviço `pgadmin` (dpage/pgadmin4) na porta `5050`
+- Volume persistente `pgadmin_data`
+- Acesso: `admin@musicbot.com` / `admin`
+
+## Servidor Web (Gunicorn)
+- Substitui o servidor de desenvolvimento Flask em produção
+- Dockerfile: `gunicorn run:app --bind 0.0.0.0:5000 --workers 2 --timeout 120 --keep-alive 5`
+- 2 workers, timeout de 120s para requisições longas (chat streaming)
 
 ## Importante: Spotify Web API — Consultas Futuras
 
