@@ -27,6 +27,8 @@ export interface Message {
   midia?: Midia | null;
   streaming?: boolean;
   respostaId?: number;
+  feedbackId?: number | null;
+  feedbackTipo?: 'like' | 'dislike' | null;
 }
 
 export interface Conversation {

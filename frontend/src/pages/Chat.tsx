@@ -98,6 +98,12 @@ const MiniPlayer = ({ midia }: { midia: Midia }) => {
   );
 };
 
+// ── Tipos de feedback por mensagem ─────────────────────────────────────────────
+interface FeedbackEntry {
+  feedbackId: number;
+  tipo: 'like' | 'dislike';
+}
+
 // ── Chat ──────────────────────────────────────────────────────────────────────
 const Chat = () => {
   const navigate = useNavigate();
@@ -109,7 +115,8 @@ const Chat = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
-  const [conversationRating, setConversationRating] = useState<ConversationRating>(null);
+  // feedbackState: mapeia respostaId → { feedbackId, tipo }
+  const [feedbackState, setFeedbackState] = useState<Record<number, FeedbackEntry>>({});
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [showHistory, setShowHistory] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -148,7 +155,7 @@ const Chat = () => {
         if (!res.ok) return;
         const data = await res.json();
         setConversations((data.chats ?? []).map((c: ChatApiResponse): Conversation => ({ id: String(c.id), title: c.titulo, updatedAt: new Date(c.updated_at).toLocaleDateString('pt-BR'), messages: [] })));
-      } catch { } finally { setHistoryLoading(false); }
+      } catch { /* Silencioso: falha ao carregar chats */ } finally { setHistoryLoading(false); }
     };
     loadChats();
   }, []);
@@ -161,7 +168,7 @@ const Chat = () => {
         if (!res.ok) return;
         const data = await res.json();
         if (data.provider) setLlmProvider(data.provider);
-      } catch { }
+      } catch { /* Silencioso: falha ao carregar provider */ }
     };
     if (user) loadProvider();
   }, [user]);
@@ -176,7 +183,7 @@ const Chat = () => {
         body: JSON.stringify({ provider: novo }),
       });
       if (res.ok) setLlmProvider(novo);
-    } catch { } finally { setProviderLoading(false); }
+    } catch { /* Silencioso: falha ao alternar provider */ } finally { setProviderLoading(false); }
   };
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, isTyping]);
@@ -196,7 +203,7 @@ const Chat = () => {
       setConversations((prev) => [novo, ...prev]);
       setCurrentConversationId(novo.id);
       setMessages([]);
-      setConversationRating(null);
+      setFeedbackState({});
       setShowHistory(false);
     } catch { }
   };
@@ -224,7 +231,7 @@ const Chat = () => {
         chatId = String(data.chat_id);
         setConversations((prev) => [{ id: chatId!, title: data.titulo, updatedAt: new Date().toLocaleDateString('pt-BR'), messages: [] }, ...prev]);
         setCurrentConversationId(chatId);
-      } catch { return; }
+      } catch { return; /* Falha ao criar chat */ }
     }
 
     const userMessage: Message = {
@@ -309,62 +316,141 @@ const Chat = () => {
   const loadConversationMessages = async (id: string) => {
     setCurrentConversationId(id);
     setMessages([]);
+    setFeedbackState({});
+    setShowHistory(false);
     try {
       const res = await authFetch(`${API}/chat/${id}/messages`);
       if (!res.ok) return;
       const data = await res.json();
-      setMessages(data.messages ?? []);
-    } catch { }
+      const msgs: Message[] = (data.messages ?? []).map((m: Record<string, unknown>): Message => ({
+        id: (m.id as string | undefined) ?? `m-${Date.now()}`,
+        role: (m.role as Message['role']),
+        content: (m.content as string) ?? '',
+        timestamp: m.timestamp ? fmt(m.timestamp as string) : fmt(),
+        sources: (m.sources as Source[] | undefined) ?? undefined,
+        midia: (m.midia as Midia | null | undefined) ?? null,
+        respostaId: (m.resposta_id as number | undefined) ?? undefined,
+      }));
+      setMessages(msgs);
+    } catch { /* Silencioso: falha ao carregar mensagens */ }
   };
+
+  const handleSelectConversation = (id: string) => { void loadConversationMessages(id); };
 
   const handlePreviousConversation = () => {
-    if (!canNavigateConversations) return;
+    if (conversations.length === 0 || !currentConversationId) return;
     const idx = conversations.findIndex((c) => c.id === currentConversationId);
-    const next = idx <= 0 ? conversations.length - 1 : idx - 1;
-    loadConversationMessages(conversations[next].id);
+    const prev = idx > 0 ? conversations[idx - 1] : conversations[conversations.length - 1];
+    void loadConversationMessages(prev.id);
   };
 
-  const handleNextConversation = async () => {
-    if (!canNavigateConversations) return;
+  const handleNextConversation = () => {
+    if (conversations.length === 0 || !currentConversationId) return;
     const idx = conversations.findIndex((c) => c.id === currentConversationId);
-    const next = idx >= conversations.length - 1 ? 0 : idx + 1;
-    loadConversationMessages(conversations[next].id);
-  };
-  const handleSelectConversation = async (id: string) => {
-    setShowHistory(false);
-    await loadConversationMessages(id);
+    const next = idx < conversations.length - 1 ? conversations[idx + 1] : conversations[0];
+    void loadConversationMessages(next.id);
   };
 
-  // ── Feedback ──────────────────────────────────────────────────────────────────
-  const sendFeedback = async (tipo: 'like' | 'dislike' | 'report', comentario: string = '') => {
-    // Evita múltiplos envios simultâneos para a mesma resposta
+  const handleExport = async (format: string) => {
+    setShowExportMenu(false);
+    if (!currentConversationId) return;
+    try {
+      const res = await authFetch(`${API}/chat/${currentConversationId}/export?format=${format}`);
+      if (!res.ok) return;
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `chat_${currentConversationId}.${format}`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch { /* Silencioso: falha ao exportar */ }
+  };
+
+  // ── Feedback (por mensagem, com toggle) ────────────────────────────────────
+  const sendFeedback = async (respostaId: number, tipo: 'like' | 'dislike') => {
     if (feedbackSendingRef.current) return;
 
-    const ultimaMsgBot = [...messages].reverse().find((m) => m.role === 'bot' && m.respostaId);
-    if (!ultimaMsgBot?.respostaId) return;
+    const existing = feedbackState[respostaId];
 
+    // Se já existe um feedback DESTE TIPO → remover (toggle off)
+    if (existing && existing.tipo === tipo) {
+      feedbackSendingRef.current = true;
+      try {
+        const res = await authFetch(`${API}/chat/feedback/${existing.feedbackId}`, {
+          method: 'DELETE',
+        });
+        if (res.ok) {
+          setFeedbackState((prev) => {
+            const next = { ...prev };
+            delete next[respostaId];
+            return next;
+          });
+          toast({ title: 'Feedback removido' });
+          // Atualiza a mensagem visualmente
+          setMessages((prev) => prev.map((m) =>
+            m.respostaId === respostaId ? { ...m, feedbackTipo: null, feedbackId: null } : m
+          ));
+        }
+      } catch {
+        toast({ title: 'Erro de conexão', description: 'Não foi possível remover o feedback.' });
+      } finally {
+        feedbackSendingRef.current = false;
+      }
+      return;
+    }
+
+    // Se já existe feedback de OUTRO TIPO → substituir (deletar antigo, criar novo)
+    if (existing && existing.tipo !== tipo) {
+      feedbackSendingRef.current = true;
+      try {
+        // Deleta o antigo
+        await authFetch(`${API}/chat/feedback/${existing.feedbackId}`, { method: 'DELETE' });
+        // Cria o novo
+        const res = await authFetch(`${API}/chat/feedback`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ resposta_id: respostaId, tipo }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setFeedbackState((prev) => ({ ...prev, [respostaId]: { feedbackId: data.id, tipo } }));
+          setMessages((prev) => prev.map((m) =>
+            m.respostaId === respostaId ? { ...m, feedbackTipo: tipo, feedbackId: data.id } : m
+          ));
+          toast({ title: tipo === 'like' ? 'Like enviado ✅' : 'Dislike registrado' });
+        } else if (res.status === 401) {
+          toast({ title: 'Sessão expirada', description: 'Faça login novamente.' });
+        } else {
+          toast({ title: 'Erro ao trocar feedback' });
+        }
+      } catch {
+        toast({ title: 'Erro de conexão', description: 'Não foi possível atualizar o feedback.' });
+      } finally {
+        feedbackSendingRef.current = false;
+      }
+      return;
+    }
+
+    // Feedback novo (sem existente)
     feedbackSendingRef.current = true;
     try {
       const res = await authFetch(`${API}/chat/feedback`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          resposta_id: ultimaMsgBot.respostaId,
-          tipo,
-          comentario: comentario || undefined,
-        }),
+        body: JSON.stringify({ resposta_id: respostaId, tipo }),
       });
-
       if (res.ok) {
+        const data = await res.json();
+        setFeedbackState((prev) => ({ ...prev, [respostaId]: { feedbackId: data.id, tipo } }));
+        setMessages((prev) => prev.map((m) =>
+          m.respostaId === respostaId ? { ...m, feedbackTipo: tipo, feedbackId: data.id } : m
+        ));
         const labels: Record<string, string> = {
           like: 'Like enviado ✅',
           dislike: 'Dislike registrado',
-          report: 'Bug report enviado ✅',
         };
-        toast({
-          title: labels[tipo] ?? 'Feedback enviado',
-          description: comentario || undefined,
-        });
+        toast({ title: labels[tipo] });
       } else if (res.status === 401) {
         toast({ title: 'Erro ao enviar feedback', description: 'Sessão expirada. Faça login novamente.' });
       }
@@ -375,27 +461,45 @@ const Chat = () => {
     }
   };
 
-  // ── Export ──────────────────────────────────────────────────────────────────
-  const handleExport = async (format: 'txt' | 'json' | 'md' | 'pdf') => {
-    if (!currentConversationId) return;
-    setShowExportMenu(false);
-    const res = await authFetch(`${API}/chat/${currentConversationId}/export?format=${format}`);
-    if (!res.ok) return;
-    const blob = await res.blob();
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href     = url;
-    a.download = `chat_${currentConversationId}.${format}`;
-    a.click();
-    URL.revokeObjectURL(url);
+  const sendReport = async (comentario: string) => {
+    if (!comentario.trim()) return;
+    // Busca a última resposta do bot com respostaId
+    const ultimaMsgBot = [...messages].reverse().find((m) => m.role === 'bot' && m.respostaId);
+    if (!ultimaMsgBot?.respostaId) {
+      toast({ title: 'Não foi possível enviar o report', description: 'Nenhuma resposta disponível para reportar.', variant: 'destructive' });
+      return;
+    }
+
+    feedbackSendingRef.current = true;
+    try {
+      const res = await authFetch(`${API}/chat/feedback`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resposta_id: ultimaMsgBot.respostaId, tipo: 'report', comentario }),
+      });
+      if (res.ok) {
+        toast({ title: 'Bug report enviado ✅' });
+      } else if (res.status === 401) {
+        toast({ title: 'Erro ao enviar feedback', description: 'Sessão expirada. Faça login novamente.' });
+      }
+    } catch {
+      toast({ title: 'Erro de conexão', description: 'Não foi possível enviar o feedback.' });
+    } finally {
+      feedbackSendingRef.current = false;
+    }
   };
 
-  const userAvatar = user?.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user?.name ?? 'U')}`;
-  const userAlt    = user?.name || 'Usuário visitante';
+  const userAvatar = user?.avatar || '';
+  const userAlt = user?.name || 'User';
 
-  let historyContent: JSX.Element;
+  // ── Render ──────────────────────────────────────────────────────────────────
+  let historyContent: React.ReactNode;
   if (historyLoading) {
-    historyContent = (<div className="space-y-2"><div className="h-12 rounded-xl bg-white/10 animate-pulse" /><div className="h-12 rounded-xl bg-white/10 animate-pulse" /><div className="h-12 rounded-xl bg-white/10 animate-pulse" /></div>);
+    historyContent = (
+      <div className="flex justify-center py-4">
+        <div className="w-5 h-5 border-2 border-[#1DB954] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
   } else if (conversations.length === 0) {
     historyContent = <p className="text-slate text-sm py-4">Nenhuma conversa encontrada.</p>;
   } else {
@@ -425,23 +529,56 @@ const Chat = () => {
               <p className="text-slate text-sm sm:text-base">{currentConversationId ? 'Nenhuma mensagem ainda.' : 'Envie uma mensagem para começar.'}</p>
             </div>
           ) : (
-            messages.map((message) => (
-              <article key={message.id} className={`w-full flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[90%] sm:max-w-[78%] rounded-2xl px-4 sm:px-5 py-3 sm:py-4 ${message.role === 'user' ? 'bg-[#1DB954] text-off-white rounded-br-md' : 'bg-[#282828] text-off-white rounded-bl-md'}`}>
-                  <p className="text-sm sm:text-base whitespace-pre-wrap leading-relaxed">
-                    {message.content}
-                    {message.streaming && <span className="inline-block w-2 h-4 ml-1 bg-[#1DB954] animate-pulse rounded-sm" />}
-                  </p>
-                  {message.role === 'bot' && message.midia?.preview_url && <MiniPlayer midia={message.midia} />}
-                  <div className="mt-2 text-xs text-slate flex items-center gap-2">
-                    <span>{message.timestamp}</span>
-                    {message.sources && message.sources.length > 0 && (
-                      <button type="button" onClick={() => setSelectedSource(message.sources?.[0] ?? null)} className="text-[#1DB954] hover:underline">Fonte</button>
+            messages.map((message) => {
+              const fbEntry = message.respostaId ? feedbackState[message.respostaId] : undefined;
+              const hasFeedback = !!fbEntry || !!message.feedbackTipo;
+              const currentTipo = fbEntry?.tipo ?? message.feedbackTipo ?? null;
+
+              return (
+                <article key={message.id} className={`w-full flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`max-w-[90%] sm:max-w-[78%] rounded-2xl px-4 sm:px-5 py-3 sm:py-4 ${message.role === 'user' ? 'bg-[#1DB954] text-off-white rounded-br-md' : 'bg-[#282828] text-off-white rounded-bl-md'}`}>
+                    <p className="text-sm sm:text-base whitespace-pre-wrap leading-relaxed">
+                      {message.content}
+                      {message.streaming && <span className="inline-block w-2 h-4 ml-1 bg-[#1DB954] animate-pulse rounded-sm" />}
+                    </p>
+                    {message.role === 'bot' && message.midia?.preview_url && <MiniPlayer midia={message.midia} />}
+                    <div className="mt-2 text-xs text-slate flex items-center gap-2">
+                      <span>{message.timestamp}</span>
+                      {message.sources && message.sources.length > 0 && (
+                        <button type="button" onClick={() => setSelectedSource(message.sources?.[0] ?? null)} className="text-[#1DB954] hover:underline">Fonte</button>
+                      )}
+                    </div>
+
+                    {/* ── Botões de feedback inline (apenas para respostas do bot) ── */}
+                    {message.role === 'bot' && message.respostaId && !message.streaming && (
+                      <div className="mt-2 flex items-center gap-1 border-t border-[hsla(0,0%,100%,0.06)] pt-2">
+                        <button
+                          type="button"
+                          onClick={() => sendFeedback(message.respostaId!, 'like')}
+                          className={`p-1.5 rounded-lg transition-all duration-200 ${currentTipo === 'like' ? 'bg-[#1ED76020] text-[#1ED760]' : 'text-slate hover:text-[#1ED760]'}`}
+                          title="Gostei"
+                        >
+                          <ThumbsUp size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => sendFeedback(message.respostaId!, 'dislike')}
+                          className={`p-1.5 rounded-lg transition-all duration-200 ${currentTipo === 'dislike' ? 'bg-[#E9142920] text-[#E91429]' : 'text-slate hover:text-[#E91429]'}`}
+                          title="Não gostei"
+                        >
+                          <ThumbsDown size={14} />
+                        </button>
+                        {hasFeedback && (
+                          <span className={`text-[10px] font-body ml-1 ${currentTipo === 'like' ? 'text-[#1ED760]' : 'text-[#E91429]'}`}>
+                            {currentTipo === 'like' ? '👍 Obrigado!' : '👎 Feedback registrado'}
+                          </span>
+                        )}
+                      </div>
                     )}
                   </div>
-                </div>
-              </article>
-            ))
+                </article>
+              );
+            })
           )}
           {isTyping && messages[messages.length - 1]?.streaming !== true && (
             <div className="flex items-center gap-1 bg-[#282828] rounded-2xl rounded-bl-md px-4 py-3 w-fit">
@@ -493,8 +630,6 @@ const Chat = () => {
         {/* Barra inferior */}
         <div className="grid grid-cols-[1fr_auto_1fr] items-center mt-4 sm:mt-5 px-1 gap-3">
           <div className="flex items-center gap-1 sm:gap-2 justify-self-start">
-            <button type="button" onClick={() => { const novo = conversationRating === 'positive' ? null : 'positive'; setConversationRating(novo); if (novo === 'positive') sendFeedback('like'); }} className={`p-2 rounded-lg transition-all duration-200 ${conversationRating === 'positive' ? 'bg-[#1ED76020] text-[#1ED760]' : 'text-slate hover:text-off-white'}`}><ThumbsUp size={18} /></button>
-            <button type="button" onClick={() => { const novo = conversationRating === 'negative' ? null : 'negative'; setConversationRating(novo); if (novo === 'negative') sendFeedback('dislike'); }} className={`p-2 rounded-lg transition-all duration-200 ${conversationRating === 'negative' ? 'bg-[#E9142920] text-[#E91429]' : 'text-slate hover:text-off-white'}`}><ThumbsDown size={18} /></button>
             <button type="button" onClick={() => setShowCommands(true)} className="p-2 rounded-lg text-slate hover:text-off-white transition-colors" title="Comandos disponíveis"><Terminal size={18} /></button>
             <button type="button" onClick={() => setShowFeedback(true)} className="p-2 rounded-lg text-slate hover:text-off-white transition-colors"><Bug size={18} /></button>
             <div className="relative">
@@ -601,7 +736,7 @@ const Chat = () => {
               <button type="button" onClick={() => setShowFeedback(false)} className="text-slate hover:text-off-white"><X size={18} /></button>
             </div>
             <textarea value={feedbackText} onChange={(e) => setFeedbackText(e.target.value)} placeholder="Descreva seu feedback..." className="w-full h-28 rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-sm text-off-white placeholder:text-slate focus:outline-none" />
-            <button type="button" onClick={() => { sendFeedback('report', feedbackText); setFeedbackText(''); setShowFeedback(false); }} className="mt-4 w-full bg-[#1DB954] text-black rounded-xl py-2.5 text-sm font-semibold hover:brightness-110">Enviar</button>
+            <button type="button" onClick={() => { sendReport(feedbackText); setFeedbackText(''); setShowFeedback(false); }} className="mt-4 w-full bg-[#1DB954] text-black rounded-xl py-2.5 text-sm font-semibold hover:brightness-110">Enviar</button>
           </div>
         </div>
       )}
