@@ -82,14 +82,16 @@ const Dashboard = () => {
   const [feedbackFilter, setFeedbackFilter] = useState<FeedbackFilter>('all');
   const [showExportMenu, setShowExportMenu] = useState(false);
 
-  const { metrics, chartData, feedbacks, reviews, bugs, loading, error, refresh } = useDashboard(
+  const {
+    metrics, chartData, feedbacks, reviews, bugs,
+    feedbacksPagination, reviewsPagination, bugsPagination,
+    loading, error, lastUpdated, refresh,
+    setFeedbackPage, setReviewPage, setBugPage,
+  } = useDashboard(
     period,
     feedbackFilter === 'all' ? undefined : feedbackFilter,
     reviewFilter === 'all' ? undefined : reviewFilter,
   );
-
-  const filteredFeedbacks = feedbacks;
-  const filteredReviews = reviews;
 
   // ── Se não for moderador, mostra tela de acesso restrito ──────────────────
   if (!isModerator) {
@@ -323,7 +325,7 @@ const Dashboard = () => {
                       <Loader2 size={20} className="mx-auto animate-spin text-slate" />
                     </td>
                   </tr>
-                ) : filteredFeedbacks.length === 0 ? (
+                ) : feedbacks.length === 0 ? (
                   <EmptyTableRow
                     colSpan={4}
                     title="Nenhum feedback disponível"
@@ -357,8 +359,17 @@ const Dashboard = () => {
             </table>
           </div>
 
+          {/* Paginação Feedbacks */}
+          {feedbacksPagination.totalPages > 1 && (
+            <PaginationControls
+              page={feedbacksPagination.page}
+              totalPages={feedbacksPagination.totalPages}
+              total={feedbacksPagination.total}
+              onPageChange={setFeedbackPage}
+            />
+          )}
           <p className="mt-3 text-xs font-body text-slate">
-            Mostrando {feedbacks.length} feedbacks
+            Página {feedbacksPagination.page} de {feedbacksPagination.totalPages} · {feedbacksPagination.total} feedbacks no total
           </p>
         </div>
 
@@ -409,8 +420,17 @@ const Dashboard = () => {
             </table>
           </div>
 
+          {/* Paginação Bugs */}
+          {bugsPagination.totalPages > 1 && (
+            <PaginationControls
+              page={bugsPagination.page}
+              totalPages={bugsPagination.totalPages}
+              total={bugsPagination.total}
+              onPageChange={setBugPage}
+            />
+          )}
           <p className="mt-3 text-xs font-body text-slate">
-            Mostrando {bugs.length} bug reports
+            Página {bugsPagination.page} de {bugsPagination.totalPages} · {bugsPagination.total} bug reports no total
           </p>
         </div>
 
@@ -458,14 +478,14 @@ const Dashboard = () => {
                       <Loader2 size={20} className="mx-auto animate-spin text-slate" />
                     </td>
                   </tr>
-                ) : filteredReviews.length === 0 ? (
+                ) : reviews.length === 0 ? (
                   <EmptyTableRow
                     colSpan={4}
                     title="Nenhuma avaliação disponível"
                     description="Nenhuma avaliação registrada para o período e filtro selecionados."
                   />
                 ) : (
-                  filteredReviews.map((rv) => (
+                  reviews.map((rv) => (
                     <tr
                       key={rv.id}
                       className="border-b border-[#1E1E1E] transition-colors hover:bg-[#282828]"
@@ -485,6 +505,37 @@ const Dashboard = () => {
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* Paginação Reviews */}
+          {reviewsPagination.totalPages > 1 && (
+            <PaginationControls
+              page={reviewsPagination.page}
+              totalPages={reviewsPagination.totalPages}
+              total={reviewsPagination.total}
+              onPageChange={setReviewPage}
+            />
+          )}
+        </div>
+
+        {/* ── Indicador de última atualização + refresh manual ─────────────── */}
+        <div className="mt-6 flex items-center justify-between">
+          <div className="flex items-center gap-3 text-xs text-slate">
+            <button
+              type="button"
+              onClick={refresh}
+              className="flex items-center gap-1.5 rounded-lg bg-[#282828] px-3 py-1.5 hover:bg-[#3E3E3E] hover:text-off-white transition-colors"
+              title="Atualizar agora"
+            >
+              <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
+              Atualizar
+            </button>
+            {lastUpdated && (
+              <span>
+                Última atualização: {lastUpdated.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                <span className="ml-1 text-[#1DB954]">(auto: 30s)</span>
+              </span>
+            )}
           </div>
         </div>
 
@@ -583,5 +634,65 @@ const EmptyTableRow = memo(({
 ));
 
 EmptyTableRow.displayName = 'EmptyTableRow';
+
+const PaginationControls = memo(({
+  page,
+  totalPages,
+  total,
+  onPageChange,
+}: {
+  page: number;
+  totalPages: number;
+  total: number;
+  onPageChange: (page: number) => void;
+}) => {
+  const pages: number[] = [];
+  const maxVisible = 5;
+  let start = Math.max(1, page - Math.floor(maxVisible / 2));
+  const end = Math.min(totalPages, start + maxVisible - 1);
+  if (end - start + 1 < maxVisible) {
+    start = Math.max(1, end - maxVisible + 1);
+  }
+  for (let i = start; i <= end; i++) {
+    pages.push(i);
+  }
+
+  return (
+    <div className="mt-4 flex items-center justify-center gap-1">
+      <button
+        type="button"
+        onClick={() => onPageChange(page - 1)}
+        disabled={page <= 1}
+        className="rounded-lg px-2 py-1 text-xs text-slate hover:text-off-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+      >
+        ←
+      </button>
+      {pages.map((p) => (
+        <button
+          key={p}
+          type="button"
+          onClick={() => onPageChange(p)}
+          className={`rounded-lg px-2.5 py-1 text-xs font-body transition-colors ${
+            p === page
+              ? 'bg-[#1DB954] text-off-white'
+              : 'text-slate hover:text-off-white hover:bg-[#282828]'
+          }`}
+        >
+          {p}
+        </button>
+      ))}
+      <button
+        type="button"
+        onClick={() => onPageChange(page + 1)}
+        disabled={page >= totalPages}
+        className="rounded-lg px-2 py-1 text-xs text-slate hover:text-off-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+      >
+        →
+      </button>
+    </div>
+  );
+});
+
+PaginationControls.displayName = 'PaginationControls';
 
 export default Dashboard;

@@ -1,7 +1,5 @@
 import { authFetch } from '@/contexts/AuthContext';
-import type { DashboardPeriod, ExportFormat, DashboardMetrics, ChartPoint, DashboardFeedback, DashboardBug, DashboardReview } from '@/types';
-
-const API_BASE = '/api';
+import type { DashboardPeriod, ExportFormat, DashboardMetrics, ChartPoint, DashboardFeedback, DashboardBug, DashboardReview, PaginatedResponse } from '@/types';
 
 const API = '/api';
 
@@ -21,7 +19,7 @@ export async function exportRelatorio(period: DashboardPeriod, format: ExportFor
 }
 
 async function apiFetch<T>(path: string): Promise<T> {
-  const res = await authFetch(`${API_BASE}${path}`);
+  const res = await authFetch(`${API}${path}`);
   if (!res.ok) throw new Error(`Dashboard API error: ${res.status}`);
   return res.json() as Promise<T>;
 }
@@ -38,30 +36,30 @@ export async function fetchChartData(period: DashboardPeriod): Promise<ChartPoin
 export async function fetchFeedbacks(
   period: DashboardPeriod,
   tipo?: string,
-): Promise<DashboardFeedback[]> {
-  const params = new URLSearchParams({ period });
+  page: number = 1,
+  perPage: number = 20,
+): Promise<PaginatedResponse<DashboardFeedback>> {
+  const params = new URLSearchParams({ period, page: String(page), per_page: String(perPage) });
   if (tipo && tipo !== 'all') params.set('tipo', tipo);
-  const body = await apiFetch<{ feedbacks: DashboardFeedback[] }>(
-    `/dashboard/feedbacks?${params}`,
-  );
-  return body.feedbacks;
+  return apiFetch<PaginatedResponse<DashboardFeedback>>(`/dashboard/feedbacks?${params}`);
 }
 
 export async function fetchReviews(
   period: DashboardPeriod,
   rating?: string,
-): Promise<DashboardReview[]> {
-  const params = new URLSearchParams({ period });
+  page: number = 1,
+  perPage: number = 20,
+): Promise<PaginatedResponse<DashboardReview>> {
+  const params = new URLSearchParams({ period, page: String(page), per_page: String(perPage) });
   if (rating && rating !== 'all') params.set('rating', rating);
-  const body = await apiFetch<{ reviews: DashboardReview[] }>(
-    `/dashboard/reviews?${params}`,
-  );
-  return body.reviews;
+  return apiFetch<PaginatedResponse<DashboardReview>>(`/dashboard/reviews?${params}`);
 }
 
-export async function fetchBugs(period: DashboardPeriod): Promise<DashboardBug[]> {
-  const body = await apiFetch<{ bugs: DashboardBug[] }>(
-    `/dashboard/bugs?period=${period}`,
-  );
-  return body.bugs;
+export async function fetchBugs(
+  period: DashboardPeriod,
+  page: number = 1,
+  perPage: number = 20,
+): Promise<PaginatedResponse<DashboardBug>> {
+  const params = new URLSearchParams({ period, page: String(page), per_page: String(perPage) });
+  return apiFetch<PaginatedResponse<DashboardBug>>(`/dashboard/bugs?${params}`);
 }

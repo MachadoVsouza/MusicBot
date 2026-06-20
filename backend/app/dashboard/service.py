@@ -23,11 +23,13 @@ class DashboardService:
     def get_grafico(self, period: str) -> list[dict]:
         return self._repo.get_perguntas_por_dia(self._desde(period))
 
-    def get_feedbacks(self, period: str, tipo: str | None) -> list[dict]:
-        return self._repo.get_feedbacks(self._desde(period), tipo)
+    def get_feedbacks(self, period: str, tipo: str | None,
+                      page: int = 1, per_page: int = 20) -> dict:
+        return self._repo.get_feedbacks(self._desde(period), tipo, page, per_page)
 
-    def get_avaliacoes(self, period: str, rating: str | None) -> list[dict]:
-        return self._repo.get_avaliacoes(self._desde(period), rating)
+    def get_avaliacoes(self, period: str, rating: str | None,
+                       page: int = 1, per_page: int = 20) -> dict:
+        return self._repo.get_avaliacoes(self._desde(period), rating, page, per_page)
 
-    def get_bugs(self, period: str) -> list[dict]:
-        return self._repo.get_bugs(self._desde(period))
+    def get_bugs(self, period: str, page: int = 1, per_page: int = 20) -> dict:
+        return self._repo.get_bugs(self._desde(period), page, per_page)

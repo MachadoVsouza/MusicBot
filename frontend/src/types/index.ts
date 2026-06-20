@@ -63,6 +63,14 @@ export interface ChartPoint {
   perguntas: number;
 }
 
+export interface PaginatedResponse<T> {
+  items: T[];
+  total: number;
+  page: number;
+  per_page: number;
+  total_pages: number;
+}
+
 export interface DashboardFeedback {
   id: string;
   tipo: 'like' | 'dislike';

@@ -29,27 +29,33 @@ def get_chart(token: str, usuario_id: str):
 @dashboard_bp.get("/feedbacks")
 @require_moderator
 def get_feedbacks(token: str, usuario_id: str):
-    """Retorna likes e dislikes (avaliações). NÃO inclui reports."""
-    period = request.args.get("period", "week")
-    tipo   = request.args.get("tipo") or None
-    return success({"feedbacks": _svc().get_feedbacks(period, tipo)})
+    """Retorna likes e dislikes (avaliações) com paginação. NÃO inclui reports."""
+    period   = request.args.get("period", "week")
+    tipo     = request.args.get("tipo") or None
+    page     = int(request.args.get("page", 1))
+    per_page = int(request.args.get("per_page", 20))
+    return success(_svc().get_feedbacks(period, tipo, page, per_page))
 
 
 @dashboard_bp.get("/reviews")
 @require_moderator
 def get_reviews(token: str, usuario_id: str):
-    """Retorna avaliações (likes/dislikes) consolidadas."""
-    period = request.args.get("period", "week")
-    rating = request.args.get("rating") or None
-    return success({"reviews": _svc().get_avaliacoes(period, rating)})
+    """Retorna avaliações (likes/dislikes) consolidadas com paginação."""
+    period   = request.args.get("period", "week")
+    rating   = request.args.get("rating") or None
+    page     = int(request.args.get("page", 1))
+    per_page = int(request.args.get("per_page", 20))
+    return success(_svc().get_avaliacoes(period, rating, page, per_page))
 
 
 @dashboard_bp.get("/bugs")
 @require_moderator
 def get_bugs(token: str, usuario_id: str):
-    """Retorna apenas reports (bugs). Likes/dislikes NÃO aparecem aqui."""
-    period = request.args.get("period", "week")
-    return success({"bugs": _svc().get_bugs(period)})
+    """Retorna apenas reports (bugs) com paginação. Likes/dislikes NÃO aparecem aqui."""
+    period   = request.args.get("period", "week")
+    page     = int(request.args.get("page", 1))
+    per_page = int(request.args.get("per_page", 20))
+    return success(_svc().get_bugs(period, page, per_page))
 
 
 @dashboard_bp.get("/export")
