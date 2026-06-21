@@ -4,10 +4,7 @@ import type { DashboardPeriod, ExportFormat, DashboardMetrics, ChartPoint, Dashb
 const API = '/api';
 
 export async function exportRelatorio(period: DashboardPeriod, format: ExportFormat = 'pdf'): Promise<void> {
-  const jwt = localStorage.getItem('musicbot_jwt');
-  const res = await fetch(`${API}/dashboard/export?period=${period}&format=${format}`, {
-    headers: jwt ? { Authorization: `Bearer ${jwt}` } : {},
-  });
+  const res = await authFetch(`${API}/dashboard/export?period=${period}&format=${format}`);
   if (!res.ok) throw new Error('Falha ao exportar relatório');
   const blob = await res.blob();
   const url = URL.createObjectURL(blob);

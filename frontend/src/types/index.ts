@@ -74,6 +74,7 @@ export interface PaginatedResponse<T> {
 export interface DashboardFeedback {
   id: string;
   tipo: 'like' | 'dislike';
+  usuario_email: string;
   comentario: string;
   conversa_titulo: string;
   created_at: string;
@@ -82,13 +83,17 @@ export interface DashboardFeedback {
 export interface DashboardBug {
   id: string;
   comentario: string;
+  usuario_email: string;
+  conversa_titulo: string;
   created_at: string;
 }
 
 export interface DashboardReview {
   id: string;
-  usuario_id: string;
+  usuario_email: string;
   avaliacao: ReviewRating;
+  comentario: string;
+  conversa_titulo: string;
   created_at: string;
 }
 

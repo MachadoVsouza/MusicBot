@@ -2,7 +2,7 @@ from datetime import datetime, timezone, timedelta
 from sqlalchemy import func, case
 from app.database.connection import get_session
 from app.database.models import (
-    Chat, Pergunta, Resposta, Feedback, FeedbackTipo
+    Chat, Pergunta, Resposta, Feedback, FeedbackTipo, Usuario,
 )
 
 
@@ -106,11 +106,12 @@ class DashboardRepository:
 
     def get_feedbacks(self, desde: datetime, tipo: str | None = None,
                       page: int = 1, per_page: int = 20) -> dict:
-        """Retorna likes e dislikes (avaliações) com paginação. NÃO inclui reports."""
+        """Retorna likes e dislikes (avaliações) com paginação, incluindo usuário. NÃO inclui reports."""
         session = get_session()
         try:
             base = (
-                session.query(Feedback, Pergunta, Chat)
+                session.query(Feedback, Usuario, Pergunta, Chat)
+                .join(Usuario, Feedback.usuario_id == Usuario.spotify_id)
                 .join(Resposta, Feedback.resposta_id == Resposta.id)
                 .join(Pergunta, Resposta.pergunta_id == Pergunta.id)
                 .join(Chat, Pergunta.chat_id == Chat.id)
@@ -138,11 +139,12 @@ class DashboardRepository:
                 {
                     "id": str(fb.id),
                     "tipo": fb.tipo.value,
+                    "usuario_email": usuario.email or usuario.spotify_id,
                     "comentario": fb.comentario or "",
                     "conversa_titulo": chat.titulo,
                     "created_at": fb.created_at.isoformat(),
                 }
-                for fb, pergunta, chat in rows
+                for fb, usuario, pergunta, chat in rows
             ]
 
             return {
@@ -156,11 +158,15 @@ class DashboardRepository:
             session.close()
 
     def get_bugs(self, desde: datetime, page: int = 1, per_page: int = 20) -> dict:
-        """Retorna apenas reports (bugs) com paginação. Likes/dislikes NÃO aparecem aqui."""
+        """Retorna apenas reports (bugs) com paginação, incluindo usuário e conversa."""
         session = get_session()
         try:
             base = (
-                session.query(Feedback)
+                session.query(Feedback, Usuario, Chat)
+                .join(Usuario, Feedback.usuario_id == Usuario.spotify_id)
+                .join(Resposta, Feedback.resposta_id == Resposta.id)
+                .join(Pergunta, Resposta.pergunta_id == Pergunta.id)
+                .join(Chat, Pergunta.chat_id == Chat.id)
                 .filter(
                     Feedback.created_at >= desde,
                     Feedback.tipo == FeedbackTipo.report,
@@ -182,9 +188,11 @@ class DashboardRepository:
                 {
                     "id": str(fb.id),
                     "comentario": fb.comentario or "",
+                    "usuario_email": usuario.email or usuario.spotify_id,
+                    "conversa_titulo": chat.titulo,
                     "created_at": fb.created_at.isoformat(),
                 }
-                for fb in rows
+                for fb, usuario, chat in rows
             ]
 
             return {
@@ -199,11 +207,15 @@ class DashboardRepository:
 
     def get_avaliacoes(self, desde: datetime, rating: str | None = None,
                        page: int = 1, per_page: int = 20) -> dict:
-        """Retorna avaliações (like/dislike) recentes com paginação."""
+        """Retorna avaliações (like/dislike) recentes com paginação, incluindo usuário e conversa."""
         session = get_session()
         try:
             base = (
-                session.query(Feedback)
+                session.query(Feedback, Usuario, Chat)
+                .join(Usuario, Feedback.usuario_id == Usuario.spotify_id)
+                .join(Resposta, Feedback.resposta_id == Resposta.id)
+                .join(Pergunta, Resposta.pergunta_id == Pergunta.id)
+                .join(Chat, Pergunta.chat_id == Chat.id)
                 .filter(
                     Feedback.created_at >= desde,
                     Feedback.tipo.in_([FeedbackTipo.like, FeedbackTipo.dislike]),
@@ -229,11 +241,13 @@ class DashboardRepository:
             items = [
                 {
                     "id": str(fb.id),
-                    "usuario_id": fb.usuario_id,
+                    "usuario_email": usuario.email or usuario.spotify_id,
                     "avaliacao": "positive" if fb.tipo == FeedbackTipo.like else "negative",
+                    "comentario": fb.comentario or "",
+                    "conversa_titulo": chat.titulo,
                     "created_at": fb.created_at.isoformat(),
                 }
-                for fb in rows
+                for fb, usuario, chat in rows
             ]
 
             return {

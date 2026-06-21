@@ -313,6 +313,7 @@ const Dashboard = () => {
               <thead>
                 <tr className="border-b border-[hsla(0,0%,100%,0.08)]">
                   <th className="p-3 text-left text-xs font-mono-label uppercase tracking-wider text-slate">Tipo</th>
+                  <th className="p-3 text-left text-xs font-mono-label uppercase tracking-wider text-slate">Usuário</th>
                   <th className="p-3 text-left text-xs font-mono-label uppercase tracking-wider text-slate">Comentário</th>
                   <th className="p-3 text-left text-xs font-mono-label uppercase tracking-wider text-slate">Conversa</th>
                   <th className="p-3 text-left text-xs font-mono-label uppercase tracking-wider text-slate">Data</th>
@@ -321,13 +322,13 @@ const Dashboard = () => {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={4} className="p-8 text-center">
+                    <td colSpan={5} className="p-8 text-center">
                       <Loader2 size={20} className="mx-auto animate-spin text-slate" />
                     </td>
                   </tr>
                 ) : feedbacks.length === 0 ? (
                   <EmptyTableRow
-                    colSpan={4}
+                    colSpan={5}
                     title="Nenhum feedback disponível"
                     description="Nenhum feedback registrado para o período e filtro selecionados."
                   />
@@ -346,6 +347,7 @@ const Dashboard = () => {
                             {config.label}
                           </span>
                         </td>
+                        <td className="p-3 text-xs font-body text-slate max-w-[120px] truncate">{fb.usuario_email}</td>
                         <td className="p-3 text-sm font-body text-off-white max-w-xs truncate">
                           {fb.comentario || <span className="text-slate italic">sem comentário</span>}
                         </td>
@@ -385,20 +387,22 @@ const Dashboard = () => {
               <thead>
                 <tr className="border-b border-[hsla(0,0%,100%,0.08)]">
                   <th className="p-3 text-left text-xs font-mono-label uppercase tracking-wider text-slate">ID</th>
+                  <th className="p-3 text-left text-xs font-mono-label uppercase tracking-wider text-slate">Usuário</th>
                   <th className="p-3 text-left text-xs font-mono-label uppercase tracking-wider text-slate">Comentário</th>
+                  <th className="p-3 text-left text-xs font-mono-label uppercase tracking-wider text-slate">Conversa</th>
                   <th className="p-3 text-left text-xs font-mono-label uppercase tracking-wider text-slate">Data</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={3} className="p-8 text-center">
+                    <td colSpan={5} className="p-8 text-center">
                       <Loader2 size={20} className="mx-auto animate-spin text-slate" />
                     </td>
                   </tr>
                 ) : bugs.length === 0 ? (
                   <EmptyTableRow
-                    colSpan={3}
+                    colSpan={5}
                     title="Nenhum bug reportado"
                     description="Nenhum bug report registrado para este período."
                   />
@@ -409,9 +413,11 @@ const Dashboard = () => {
                       className="border-b border-[#1E1E1E] transition-colors hover:bg-[#282828]"
                     >
                       <td className="p-3 text-sm font-mono-label text-yellow-400">#{bug.id}</td>
+                      <td className="p-3 text-xs font-body text-slate max-w-[120px] truncate">{bug.usuario_email}</td>
                       <td className="p-3 text-sm font-body text-off-white max-w-md">
                         {bug.comentario || <span className="text-slate italic">sem comentário</span>}
                       </td>
+                      <td className="p-3 text-xs font-body text-slate">{bug.conversa_titulo}</td>
                       <td className="p-3 text-xs font-mono-label text-slate">{formatDate(bug.created_at)}</td>
                     </tr>
                   ))
@@ -468,19 +474,21 @@ const Dashboard = () => {
                   <th className="p-3 text-left text-xs font-mono-label uppercase tracking-wider text-slate">ID</th>
                   <th className="p-3 text-left text-xs font-mono-label uppercase tracking-wider text-slate">Usuário</th>
                   <th className="p-3 text-left text-xs font-mono-label uppercase tracking-wider text-slate">Avaliação</th>
+                  <th className="p-3 text-left text-xs font-mono-label uppercase tracking-wider text-slate">Comentário</th>
+                  <th className="p-3 text-left text-xs font-mono-label uppercase tracking-wider text-slate">Conversa</th>
                   <th className="p-3 text-left text-xs font-mono-label uppercase tracking-wider text-slate">Data</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={4} className="p-8 text-center">
+                    <td colSpan={6} className="p-8 text-center">
                       <Loader2 size={20} className="mx-auto animate-spin text-slate" />
                     </td>
                   </tr>
                 ) : reviews.length === 0 ? (
                   <EmptyTableRow
-                    colSpan={4}
+                    colSpan={6}
                     title="Nenhuma avaliação disponível"
                     description="Nenhuma avaliação registrada para o período e filtro selecionados."
                   />
@@ -491,7 +499,7 @@ const Dashboard = () => {
                       className="border-b border-[#1E1E1E] transition-colors hover:bg-[#282828]"
                     >
                       <td className="p-3 text-sm font-mono-label text-teal">#{rv.id}</td>
-                      <td className="p-3 text-sm font-body text-off-white">{rv.usuario_id}</td>
+                      <td className="p-3 text-xs font-body text-slate max-w-[120px] truncate">{rv.usuario_email}</td>
                       <td className="p-3">
                         {rv.avaliacao === 'positive' ? (
                           <ThumbsUp size={16} className="text-teal" />
@@ -499,6 +507,10 @@ const Dashboard = () => {
                           <ThumbsDown size={16} className="text-magenta" />
                         )}
                       </td>
+                      <td className="p-3 text-sm font-body text-off-white max-w-xs truncate">
+                        {rv.comentario || <span className="text-slate italic">sem comentário</span>}
+                      </td>
+                      <td className="p-3 text-xs font-body text-slate">{rv.conversa_titulo}</td>
                       <td className="p-3 text-xs font-mono-label text-slate">{formatDate(rv.created_at)}</td>
                     </tr>
                   ))
