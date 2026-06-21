@@ -24,8 +24,9 @@ class DashboardService:
         return self._repo.get_perguntas_por_dia(self._desde(period))
 
     def get_feedbacks(self, period: str, tipo: str | None,
-                      page: int = 1, per_page: int = 20) -> dict:
-        return self._repo.get_feedbacks(self._desde(period), tipo, page, per_page)
+                      page: int = 1, per_page: int = 20,
+                      order_by: str = "created_at") -> dict:
+        return self._repo.get_feedbacks(self._desde(period), tipo, page, per_page, order_by)
 
     def get_avaliacoes(self, period: str, rating: str | None,
                        page: int = 1, per_page: int = 20) -> dict:

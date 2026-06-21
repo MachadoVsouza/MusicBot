@@ -34,7 +34,8 @@ def get_feedbacks(token: str, usuario_id: str):
     tipo     = request.args.get("tipo") or None
     page     = int(request.args.get("page", 1))
     per_page = int(request.args.get("per_page", 20))
-    return success(_svc().get_feedbacks(period, tipo, page, per_page))
+    order_by = request.args.get("order_by", "created_at")
+    return success(_svc().get_feedbacks(period, tipo, page, per_page, order_by))
 
 
 @dashboard_bp.get("/reviews")

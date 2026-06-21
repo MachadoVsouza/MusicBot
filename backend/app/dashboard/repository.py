@@ -4,6 +4,7 @@ from app.database.connection import get_session
 from app.database.models import (
     Chat, Pergunta, Resposta, Feedback, FeedbackTipo, Usuario,
 )
+from sqlalchemy import desc, asc
 
 
 class DashboardRepository:
@@ -105,12 +106,13 @@ class DashboardRepository:
             session.close()
 
     def get_feedbacks(self, desde: datetime, tipo: str | None = None,
-                      page: int = 1, per_page: int = 20) -> dict:
-        """Retorna likes e dislikes (avaliações) com paginação, incluindo usuário. NÃO inclui reports."""
+                      page: int = 1, per_page: int = 20,
+                      order_by: str = "created_at") -> dict:
+        """Retorna likes e dislikes (avaliações) com paginação. NÃO inclui reports."""
         session = get_session()
         try:
             base = (
-                session.query(Feedback, Usuario, Pergunta, Chat)
+                session.query(Feedback, Usuario, Resposta, Chat)
                 .join(Usuario, Feedback.usuario_id == Usuario.spotify_id)
                 .join(Resposta, Feedback.resposta_id == Resposta.id)
                 .join(Pergunta, Resposta.pergunta_id == Pergunta.id)
@@ -127,9 +129,12 @@ class DashboardRepository:
             total = base.count()
             offset = (page - 1) * per_page
 
+            order_col = Feedback.id if order_by == "id" else Feedback.created_at
+            order_dir = desc(order_col) if order_by == "created_at" else asc(order_col)
+
             rows = (
                 base
-                .order_by(Feedback.created_at.desc())
+                .order_by(order_dir)
                 .offset(offset)
                 .limit(per_page)
                 .all()
@@ -140,11 +145,12 @@ class DashboardRepository:
                     "id": str(fb.id),
                     "tipo": fb.tipo.value,
                     "usuario_email": usuario.email or usuario.spotify_id,
-                    "comentario": fb.comentario or "",
                     "conversa_titulo": chat.titulo,
+                    "mensagem_avaliada": resposta.conteudo[:200] if resposta.conteudo else "",
+                    "comentario": fb.comentario or "",
                     "created_at": fb.created_at.isoformat(),
                 }
-                for fb, usuario, pergunta, chat in rows
+                for fb, usuario, resposta, chat in rows
             ]
 
             return {

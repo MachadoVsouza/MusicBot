@@ -47,7 +47,6 @@ export interface ChatApiResponse {
 export type DashboardPeriod = 'today' | 'week' | 'month';
 export type ExportFormat = 'pdf' | 'csv' | 'json';
 export type FeedbackTipo = 'like' | 'dislike' | 'report';
-export type ReviewRating = 'positive' | 'negative';
 
 export interface DashboardMetrics {
   total_perguntas: number;
@@ -75,8 +74,9 @@ export interface DashboardFeedback {
   id: string;
   tipo: 'like' | 'dislike';
   usuario_email: string;
-  comentario: string;
   conversa_titulo: string;
+  mensagem_avaliada: string;
+  comentario: string;
   created_at: string;
 }
 
@@ -84,15 +84,6 @@ export interface DashboardBug {
   id: string;
   comentario: string;
   usuario_email: string;
-  conversa_titulo: string;
-  created_at: string;
-}
-
-export interface DashboardReview {
-  id: string;
-  usuario_email: string;
-  avaliacao: ReviewRating;
-  comentario: string;
   conversa_titulo: string;
   created_at: string;
 }

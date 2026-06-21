@@ -1,5 +1,5 @@
 import { authFetch } from '@/contexts/AuthContext';
-import type { DashboardPeriod, ExportFormat, DashboardMetrics, ChartPoint, DashboardFeedback, DashboardBug, DashboardReview, PaginatedResponse } from '@/types';
+import type { DashboardPeriod, ExportFormat, DashboardMetrics, ChartPoint, DashboardFeedback, DashboardBug, PaginatedResponse } from '@/types';
 
 const API = '/api';
 
@@ -32,24 +32,14 @@ export async function fetchChartData(period: DashboardPeriod): Promise<ChartPoin
 
 export async function fetchFeedbacks(
   period: DashboardPeriod,
-  tipo?: string,
+  tipo?: 'like' | 'dislike',
   page: number = 1,
   perPage: number = 20,
+  orderBy: 'id' | 'created_at' = 'created_at',
 ): Promise<PaginatedResponse<DashboardFeedback>> {
-  const params = new URLSearchParams({ period, page: String(page), per_page: String(perPage) });
-  if (tipo && tipo !== 'all') params.set('tipo', tipo);
+  const params = new URLSearchParams({ period, page: String(page), per_page: String(perPage), order_by: orderBy });
+  if (tipo) params.set('tipo', tipo);
   return apiFetch<PaginatedResponse<DashboardFeedback>>(`/dashboard/feedbacks?${params}`);
-}
-
-export async function fetchReviews(
-  period: DashboardPeriod,
-  rating?: string,
-  page: number = 1,
-  perPage: number = 20,
-): Promise<PaginatedResponse<DashboardReview>> {
-  const params = new URLSearchParams({ period, page: String(page), per_page: String(perPage) });
-  if (rating && rating !== 'all') params.set('rating', rating);
-  return apiFetch<PaginatedResponse<DashboardReview>>(`/dashboard/reviews?${params}`);
 }
 
 export async function fetchBugs(

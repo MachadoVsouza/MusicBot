@@ -243,10 +243,13 @@ class ChatService:
         mensagens = self.chat_repo.get_mensagens_completas(chat_id)
         return [
             {
-                "id":        f"{m['role']}-{i}",
-                "role":      "user" if m["role"] == "user" else "bot",
-                "content":   m["content"],
-                "timestamp": m["timestamp"],
+                "id":          f"{m['role']}-{i}",
+                "role":        "user" if m["role"] == "user" else "bot",
+                "content":     m["content"],
+                "timestamp":   m["timestamp"],
+                "resposta_id": m.get("resposta_id"),
+                "pergunta_id": m.get("pergunta_id"),
+                "usou_rag":    m.get("usou_rag"),
             }
             for i, m in enumerate(mensagens)
         ]
