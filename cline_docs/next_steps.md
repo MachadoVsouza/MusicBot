@@ -1,4 +1,4 @@
-# MusicBot — Status Completo do Projeto (atualizado 19/06/2026)
+# MusicBot — Status Completo do Projeto (atualizado 22/06/2026)
 
 ## ✅ Já implementado
 
@@ -25,8 +25,8 @@
 - [x] Upload de arquivos (PDF, imagens, TXT)
 - [x] RAG com síntese (create_stuff_documents_chain)
 - [x] Memory do LangChain (DbChatMessageHistory)
-- [x] Feedback (like/dislike/report)
-- [x] **Markdown nas mensagens** (react-markdown + remark-gfm)
+- [x] **Feedback inline (like/dislike/report) por mensagem** com toggle, DELETE endpoint, indicadores visuais
+- [x] **Markdown nas mensagens** (react-markdown + remark-gfm) com links customizados (badges, https:// automático)
 - [x] **Preferências persistentes** (localStorage)
 - [x] **MiniPlayer** como componente independente
 
@@ -46,19 +46,34 @@
 - [x] Fluxo de aprovação/rejeição de documentos
 - [x] **Confirmação ao deletar documento**
 
+### Dashboard
+- [x] Métricas e analytics
+- [x] **Tabela de Feedbacks unificada** (Tipo, Usuário, Conversa, Mensagem Avaliada, Data)
+- [x] **Tabela de Bug Reports** com colunas enriquecidas (Usuário, Conversa)
+- [x] **Paginação** (20 itens/página) para todas as tabelas
+- [x] **Auto-refresh** a cada 30s com indicador de última atualização
+- [x] **Toggle de ordenação** (🆔 ID / 📅 Data)
+- [x] **Filtros**: Todas / Positivas / Negativas
+- [x] Exportação PDF/CSV/JSON com authFetch
+
+### Backend — Endpoints
+- [x] `DELETE /chat/feedback/<id>` com validação de propriedade
+- [x] `GET /chat/:id/messages` retorna `resposta_id`, `pergunta_id`, `usou_rag`
+- [x] `GET /dashboard/feedbacks` com `?page=&per_page=&order_by=`
+- [x] `GET /dashboard/bugs` com `?page=&per_page=`
+- [x] JOINs com `Usuario` e `Resposta` nas queries de dashboard
+- [x] SYSTEM_PROMPT com restrição de plataformas (não recomendar Deezer, Apple Music, etc.)
+
 ### Frontend — Qualidade de Código
 - [x] **TypeScript strict mode** (zero erros)
-- [x] **Chat.tsx decomposto** em 7 componentes (MiniPlayer, MessageBubble, LLMProviderToggle, CommandsModal, PreferencesModal, ExportMenu, PlayOnSpotify)
+- [x] **Chat.tsx decomposto** com MarkdownRenderer, MiniPlayer, modais
 - [x] **Centralização de tipos** em `src/types/index.ts`
 - [x] **Padronização de imports** com `@/`
 - [x] **Fonte unificada** (Figtree)
 - [x] **ErrorBoundary global**
-- [x] **memo()** em componentes puros (MusicbotLogo, AuthCard, MetricCard, EmptyTableRow)
-- [x] **Toast unificado** (shadcn/ui, removido Sonner)
-- [x] **App.css removido** (boilerplate Vite)
+- [x] **memo()** em componentes puros (MusicbotLogo, AuthCard, MetricCard, EmptyTableRow, PaginationControls)
+- [x] **Toast unificado** (shadcn/ui)
 - [x] **Favicon corrigido** + lang="pt-BR"
-- [x] PlayOnSpotify extraído para componente próprio
-- [x] Keyframes movidos para `index.css`
 
 ### Extras
 - [x] MCP Server (13 tools do Spotify)
@@ -75,7 +90,7 @@
 ## ❌ Pendente
 
 ### 🔴 Prioridade Alta — Backend
-1. **Testar auto-detecção de artista Spotify**
+1. **Restringir LLM a não gerar links falsos/alucinados** — playlist IDs inventados quebram no Spotify
 2. **Prune do Ollama / servidor IFES** — modelo gemma4 pesado
 3. **Refatorar agents/tools.py** — 19 tools aninhadas, zero testabilidade
 

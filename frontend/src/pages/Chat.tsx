@@ -1,8 +1,10 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import {
   Bug, ChevronLeft, ChevronRight, Download, ExternalLink,
-  MessageSquare, Music, Paperclip, Pause, Play, Settings,
+  Link2, MessageSquare, Music, Paperclip, Pause, Play, Settings,
   Square, Terminal, ThumbsDown, ThumbsUp, UserCircle, X,
 } from 'lucide-react';
 import { useAuth, authFetch } from '@/contexts/AuthContext';
@@ -97,6 +99,44 @@ const MiniPlayer = ({ midia }: { midia: Midia }) => {
     </div>
   );
 };
+
+// ── Markdown Renderer com links customizados ──────────────────────────────────
+const MarkdownRenderer = ({ content }: { content: string }) => (
+  <ReactMarkdown
+    remarkPlugins={[remarkGfm]}
+    components={{
+      a: ({ href, children }) => {
+        const rawUrl = href || '';
+        // Prefixa https:// se a URL não tem protocolo (ex: open.spotify.com/playlist/...)
+        const url = /^https?:\/\//i.test(rawUrl) ? rawUrl : `https://${rawUrl}`;
+        let display = children?.toString() || rawUrl;
+        // Se o texto do link é igual à URL, extrai o domínio
+        if (display === rawUrl || display.startsWith('http') || !display.includes(' ')) {
+          try {
+            const u = new URL(url);
+            display = u.hostname + (u.pathname !== '/' ? u.pathname : '');
+          } catch {
+            display = rawUrl.replace(/^https?:\/\//, '').split('/')[0];
+          }
+        }
+        return (
+          <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#1DB95415] border border-[#1DB95430] text-[#1DB954] hover:bg-[#1DB95425] transition-colors no-underline"
+          >
+            <Link2 size={11} className="shrink-0" />
+            <span className="underline underline-offset-2 truncate max-w-[200px]">{display}</span>
+            <ExternalLink size={10} className="shrink-0 opacity-60" />
+          </a>
+        );
+      },
+    }}
+  >
+    {content}
+  </ReactMarkdown>
+);
 
 // ── Tipos de feedback por mensagem ─────────────────────────────────────────────
 interface FeedbackEntry {
@@ -537,10 +577,16 @@ const Chat = () => {
               return (
                 <article key={message.id} className={`w-full flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                   <div className={`max-w-[90%] sm:max-w-[78%] rounded-2xl px-4 sm:px-5 py-3 sm:py-4 ${message.role === 'user' ? 'bg-[#1DB954] text-off-white rounded-br-md' : 'bg-[#282828] text-off-white rounded-bl-md'}`}>
-                    <p className="text-sm sm:text-base whitespace-pre-wrap leading-relaxed">
-                      {message.content}
-                      {message.streaming && <span className="inline-block w-2 h-4 ml-1 bg-[#1DB954] animate-pulse rounded-sm" />}
-                    </p>
+                    {message.role === 'bot' ? (
+                      <div className="markdown-body text-sm sm:text-base leading-relaxed">
+                        <MarkdownRenderer content={message.content} />
+                        {message.streaming && <span className="inline-block w-2 h-4 ml-1 bg-[#1DB954] animate-pulse rounded-sm" />}
+                      </div>
+                    ) : (
+                      <p className="text-sm sm:text-base whitespace-pre-wrap leading-relaxed">
+                        {message.content}
+                      </p>
+                    )}
                     {message.role === 'bot' && message.midia?.preview_url && <MiniPlayer midia={message.midia} />}
                     <div className="mt-2 text-xs text-slate flex items-center gap-2">
                       <span>{message.timestamp}</span>

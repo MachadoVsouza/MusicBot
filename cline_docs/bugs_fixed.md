@@ -1,5 +1,79 @@
 # Bugs Corrigidos — MusicBot
 
+## [21/06/2026] — Fases 1-3: Feedback, Dashboard e Links
+
+### Fase 1 — Feedback Inline, Toggle e DELETE
+- **Botões feedback no rodapé (sempre última mensagem)**: `conversationRating` era estado único, sempre afetava a última resposta do bot independente de qual foi clicada
+  - **Solução**: Substituído por `feedbackState: Record<number, FeedbackEntry>` mapeado por `respostaId`. Botões 👍/👎 movidos para dentro de cada balão de resposta (`inline`)
+  - **Arquivo**: `frontend/src/pages/Chat.tsx`
+- **Toggle de feedback (remover like/dislike)**: Clicar 👍 quando já tinha like não removia do backend
+  - **Solução**: Adicionado `DELETE /chat/feedback/<id>` no backend (`blueprint.py`) com validação de propriedade. Frontend faz DELETE quando mesmo tipo é clicado novamente, ou DELETE+POST quando troca like↔dislike
+  - **Arquivos**: `backend/app/chat/blueprint.py`, `frontend/src/pages/Chat.tsx`
+- **Dislike sem toast**: Só like e report tinham toast de confirmação
+  - **Solução**: Adicionado toast "Dislike registrado" e toast "Feedback removido"
+- **respostaId ausente sem aviso**: Se SSE falhasse ao salvar, sendFeedback retornava silenciosamente
+  - **Solução**: sendReport mostra toast de erro "Nenhuma resposta disponível para reportar"
+- **Indicador visual de feedback**: Não havia indicação se uma mensagem já tinha feedback
+  - **Solução**: Badge "👍 Obrigado!" (verde) ou "👎 Feedback registrado" (vermelho) abaixo dos botões
+
+### Fase 2 — Dashboard: Paginação, Auto-Refresh e Limite 20
+- **Dashboard sem paginação**: LIMIT 100 em todas as queries, sem parâmetros de página
+  - **Solução**: Adicionado `page`/`per_page` com OFFSET no repository, service e blueprint. LIMIT reduzido para 20. Retorno padronizado como `{items, total, page, per_page, total_pages}`
+  - **Arquivos**: `backend/app/dashboard/repository.py`, `service.py`, `blueprint.py`
+- **Sem auto-refresh**: Dados só atualizavam ao trocar período
+  - **Solução**: `setInterval(load, 30_000)` no `useDashboard` hook com cleanup no unmount
+  - **Arquivo**: `frontend/src/hooks/useDashboard.ts`
+- **Sem indicador de refresh**: Usuário não sabia quando os dados foram atualizados
+  - **Solução**: Botão "Atualizar" manual + label "Última atualização: HH:MM:SS (auto: 30s)"
+  - **Arquivo**: `frontend/src/pages/Dashboard.tsx`
+- **Controles de paginação**: Sem navegação entre páginas nas tabelas
+  - **Solução**: Componente `PaginationControls` com ← 1 2 3 ... → em cada tabela
+  - **Arquivo**: `frontend/src/pages/Dashboard.tsx`
+
+### Fase 3 — Enriquecimento de Dados e Unificação
+- **Tabelas Feedbacks e Avaliações redundantes**: Duas tabelas mostrando os mesmos dados com colunas diferentes
+  - **Solução**: Unificadas em uma única tabela "Feedbacks dos Usuários" com colunas: Tipo, Usuário, Conversa, Mensagem Avaliada, Data
+  - **Arquivos**: `frontend/src/pages/Dashboard.tsx`, `frontend/src/types/index.ts`, `frontend/src/hooks/useDashboard.ts`
+- **usuario_id cru no Dashboard**: Tabela de avaliações mostrava Spotify ID (hash) em vez de email
+  - **Solução**: JOIN com `Usuario` em `get_feedbacks`, `get_bugs`, `get_avaliacoes`. Exibe `usuario_email`
+  - **Arquivo**: `backend/app/dashboard/repository.py`
+- **Coluna Mensagem Avaliada ausente**: Dashboard não mostrava o conteúdo da resposta que recebeu feedback
+  - **Solução**: JOIN com `Resposta` em `get_feedbacks`, incluindo `resposta.conteudo[:200]` como `mensagem_avaliada`
+  - **Arquivo**: `backend/app/dashboard/repository.py`
+- **Toggle de ordenação**: Sem controle de ordem nas tabelas
+  - **Solução**: Parâmetro `order_by: "id" | "created_at"` no backend e toggle 🆔 ID / 📅 Data no frontend
+- **exportRelatorio sem authFetch**: Usava `fetch` puro com `localStorage.getItem('musicbot_jwt')` manual
+  - **Solução**: Substituído por `authFetch` consistente com o resto do código
+  - **Arquivo**: `frontend/src/services/dashboardService.ts`
+- **Tipos removidos**: `DashboardReview`, `ReviewRating`, `type ReviewFilter` removidos após unificação
+  - **Arquivo**: `frontend/src/types/index.ts`
+
+### Bug Crítico — Botões desapareciam ao recarregar conversa
+- **Camada 1 — Repository não retornava resposta_id**: `get_mensagens_completas` não incluía `resposta_id` no retorno
+  - **Solução**: Adicionado `"resposta_id": p.resposta.id` e `"pergunta_id": p.id` no dicionário
+  - **Arquivo**: `backend/app/chat/repository.py`
+- **Camada 2 — Service descartava metadados**: `get_mensagens` mapeava apenas `{id, role, content, timestamp}`, jogando fora `resposta_id`
+  - **Solução**: Adicionado `"resposta_id": m.get("resposta_id")`, `"pergunta_id": m.get("pergunta_id")`, `"usou_rag": m.get("usou_rag")`
+  - **Arquivo**: `backend/app/chat/service.py`
+- **Camada 3 — Role mismatch**: `get_mensagens_completas` retornava `role: "assistant"` mas frontend espera `role: "bot"`
+  - **Solução**: Alterado para `"role": "bot"` (apenas em `get_mensagens_completas`; `get_historico` mantém `"assistant"` para o LLM)
+  - **Arquivo**: `backend/app/chat/repository.py`
+
+### Links e Markdown
+- **Links quebrados sem https://**: LLM gerava `[open.spotify.com/...](open.spotify.com/...)` sem protocolo
+  - **Solução**: `MarkdownRenderer` prefixa `https://` automaticamente quando URL não tem protocolo
+  - **Arquivo**: `frontend/src/pages/Chat.tsx`
+- **Links brutos ilegíveis**: `[https://url.longa](https://url.longa)` aparecia como texto markdown
+  - **Solução**: `react-markdown` + `remark-gfm` com componente `<a>` customizado: badge verde com ícone 🔗, domínio extraído, abre em nova aba
+  - **Arquivo**: `frontend/src/pages/Chat.tsx`
+
+### Prompt — Restrição de Plataformas
+- **Bot recomendava Deezer, Apple Music**: SYSTEM_PROMPT não tinha restrição
+  - **Solução**: Adicionada seção "Plataformas" proibindo mencionar concorrentes do Spotify
+  - **Arquivo**: `backend/app/chat/service.py`
+
+---
+
 ## [15/06/2026] — Fases 1-8: Refatoração Completa do Frontend
 
 ### Fase 1 — Configuração
@@ -54,7 +128,7 @@
 
 ---
 
-## [07/06/2026] - Sessão 3: User Roles, OAuth Session, Login Custom
+## [07/06/2026] — Sessão 3: User Roles, OAuth Session, Login Custom
 
 ### 14. SuperUsuários fixos não funcionavam (IDs de desenvolvedor sem role moderador)
 - **Arquivos**: `backend/app/config.py`, `backend/app/auth/service.py`, `backend/app/auth/repository.py`, `backend/app/auth/blueprint.py`
@@ -82,7 +156,7 @@
 ### pgAdmin4 adicionado ao docker-compose
 - Serviço `pgadmin` (dpage/pgadmin4) na porta `5050` com volume persistente
 
-## [06/06/2026] - Sessão: Correção de Login
+## [06/06/2026] — Sessão: Correção de Login
 
 ### Redirect URI errada no docker-compose.yml
 - **Arquivo**: `docker-compose.yml`
@@ -98,7 +172,7 @@
 
 ---
 
-## [05/06/2026] - Sessão 2: Playback, Streaming e JWT
+## [05/06/2026] — Sessão 2: Playback, Streaming e JWT
 
 ### 1. Spotify blueprint sem url_prefix (CAUSA RAIZ de Profile quebrado)
 - **Arquivo**: `backend/app/spotify/blueprint.py`
@@ -152,7 +226,7 @@
 - **Problema**: FRONTEND_URL fixo como `http://127.0.0.1:8080`, não funcionava via Cloudflare Tunnel
 - **Solução**: Detecta `X-Forwarded-Host` e `X-Forwarded-Proto` dos headers dinamicamente
 
-## [04/06/2026] - Migração JWT + Correções Gerais
+## [04/06/2026] — Migração JWT + Correções Gerais
 
 ### 1. Autenticação das rotas Spotify
 - **Arquivos**: `backend/app/spotify/blueprint.py`
