@@ -31,16 +31,15 @@ import { exportRelatorio } from '@/services/dashboardService';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 
-type ReviewFilter = 'all' | 'positive' | 'negative';
 type FeedbackFilter = 'all' | 'like' | 'dislike';
 
 const feedbackTypeConfig: Record<
   FeedbackFilter,
   { label: string; icon: LucideIcon; className: string }
 > = {
-  all: { label: 'Todos', icon: MessageSquare, className: 'text-slate' },
-  like: { label: 'Like', icon: ThumbsUp, className: 'text-[#1ED760]' },
-  dislike: { label: 'Dislike', icon: ThumbsDown, className: 'text-[#E91429]' },
+  all: { label: 'Todas', icon: MessageSquare, className: 'text-slate' },
+  like: { label: 'Positivas', icon: ThumbsUp, className: 'text-[#1ED760]' },
+  dislike: { label: 'Negativas', icon: ThumbsDown, className: 'text-[#E91429]' },
 };
 
 function formatPercent(value: number | null | undefined): string {
@@ -78,18 +77,19 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const { isModerator } = useAuth();
   const [period, setPeriod] = useState<DashboardPeriod>('week');
-  const [reviewFilter, setReviewFilter] = useState<ReviewFilter>('all');
   const [feedbackFilter, setFeedbackFilter] = useState<FeedbackFilter>('all');
   const [showExportMenu, setShowExportMenu] = useState(false);
 
-  const { metrics, chartData, feedbacks, reviews, bugs, loading, error, refresh } = useDashboard(
+  const {
+    metrics, chartData, feedbacks, bugs,
+    feedbacksPagination, bugsPagination,
+    loading, error, lastUpdated, refresh,
+    setFeedbackPage, setBugPage,
+    orderBy, setOrderBy,
+  } = useDashboard(
     period,
     feedbackFilter === 'all' ? undefined : feedbackFilter,
-    reviewFilter === 'all' ? undefined : reviewFilter,
   );
-
-  const filteredFeedbacks = feedbacks;
-  const filteredReviews = reviews;
 
   // ── Se não for moderador, mostra tela de acesso restrito ──────────────────
   if (!isModerator) {
@@ -279,30 +279,45 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* ── Tabela de Feedbacks ───────────────────────────────────────────── */}
+        {/* ── Tabela de Feedbacks (UNIFICADA) ────────────────────────────────── */}
         <div className="bg-[#181818] border border-[#282828] mb-8 rounded-card p-6">
           <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="font-display text-lg font-semibold text-off-white">
               Feedbacks dos Usuários
             </h2>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Filtros de tipo */}
               {[
-                { key: 'all' as const, label: 'Todos' },
-                { key: 'like' as const, label: 'Likes' },
-                { key: 'dislike' as const, label: 'Dislikes' },
-              ].map((option) => (
-                <button
-                  key={option.key}
-                  onClick={() => setFeedbackFilter(option.key)}
-                  className={`rounded-tag px-3 py-1 text-xs font-body transition-all duration-200 ${
-                    feedbackFilter === option.key
-                      ? 'bg-[#1DB954] text-off-white'
-                      : 'bg-[#282828] text-gray-light hover:text-off-white'
-                  }`}
-                >
-                  {option.label}
-                </button>
-              ))}
+                { key: 'all' as const },
+                { key: 'like' as const },
+                { key: 'dislike' as const },
+              ].map((option) => {
+                const config = feedbackTypeConfig[option.key];
+                const Icon = config.icon;
+                return (
+                  <button
+                    key={option.key}
+                    onClick={() => setFeedbackFilter(option.key)}
+                    className={`rounded-tag px-3 py-1 text-xs font-body transition-all duration-200 flex items-center gap-1 ${
+                      feedbackFilter === option.key
+                        ? 'bg-[#1DB954] text-off-white'
+                        : 'bg-[#282828] text-gray-light hover:text-off-white'
+                    }`}
+                  >
+                    <Icon size={12} />
+                    {config.label}
+                  </button>
+                );
+              })}
+              {/* Toggle de ordenação */}
+              <button
+                type="button"
+                onClick={() => setOrderBy(orderBy === 'created_at' ? 'id' : 'created_at')}
+                className="rounded-tag px-3 py-1 text-xs font-body bg-[#282828] text-slate hover:text-off-white transition-all duration-200 flex items-center gap-1"
+                title={orderBy === 'created_at' ? 'Ordenado por data (mais recente)' : 'Ordenado por ID'}
+              >
+                {orderBy === 'created_at' ? '📅 Data' : '🆔 ID'}
+              </button>
             </div>
           </div>
 
@@ -311,21 +326,22 @@ const Dashboard = () => {
               <thead>
                 <tr className="border-b border-[hsla(0,0%,100%,0.08)]">
                   <th className="p-3 text-left text-xs font-mono-label uppercase tracking-wider text-slate">Tipo</th>
-                  <th className="p-3 text-left text-xs font-mono-label uppercase tracking-wider text-slate">Comentário</th>
+                  <th className="p-3 text-left text-xs font-mono-label uppercase tracking-wider text-slate">Usuário</th>
                   <th className="p-3 text-left text-xs font-mono-label uppercase tracking-wider text-slate">Conversa</th>
+                  <th className="p-3 text-left text-xs font-mono-label uppercase tracking-wider text-slate">Mensagem Avaliada</th>
                   <th className="p-3 text-left text-xs font-mono-label uppercase tracking-wider text-slate">Data</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={4} className="p-8 text-center">
+                    <td colSpan={5} className="p-8 text-center">
                       <Loader2 size={20} className="mx-auto animate-spin text-slate" />
                     </td>
                   </tr>
-                ) : filteredFeedbacks.length === 0 ? (
+                ) : feedbacks.length === 0 ? (
                   <EmptyTableRow
-                    colSpan={4}
+                    colSpan={5}
                     title="Nenhum feedback disponível"
                     description="Nenhum feedback registrado para o período e filtro selecionados."
                   />
@@ -341,14 +357,14 @@ const Dashboard = () => {
                         <td className="p-3">
                           <span className={`flex items-center gap-1.5 text-xs font-body ${config.className}`}>
                             <TypeIcon size={14} />
-                            {config.label}
                           </span>
                         </td>
+                        <td className="p-3 text-xs font-body text-slate max-w-[120px] truncate">{fb.usuario_email}</td>
+                        <td className="p-3 text-xs font-body text-slate max-w-[140px] truncate">{fb.conversa_titulo}</td>
                         <td className="p-3 text-sm font-body text-off-white max-w-xs truncate">
-                          {fb.comentario || <span className="text-slate italic">sem comentário</span>}
+                          {fb.mensagem_avaliada || fb.comentario || <span className="text-slate italic">sem conteúdo</span>}
                         </td>
-                        <td className="p-3 text-xs font-body text-slate">{fb.conversa_titulo}</td>
-                        <td className="p-3 text-xs font-mono-label text-slate">{formatDate(fb.created_at)}</td>
+                        <td className="p-3 text-xs font-mono-label text-slate whitespace-nowrap">{formatDate(fb.created_at)}</td>
                       </tr>
                     );
                   })
@@ -357,8 +373,16 @@ const Dashboard = () => {
             </table>
           </div>
 
+          {feedbacksPagination.totalPages > 1 && (
+            <PaginationControls
+              page={feedbacksPagination.page}
+              totalPages={feedbacksPagination.totalPages}
+              total={feedbacksPagination.total}
+              onPageChange={setFeedbackPage}
+            />
+          )}
           <p className="mt-3 text-xs font-body text-slate">
-            Mostrando {feedbacks.length} feedbacks
+            Página {feedbacksPagination.page} de {feedbacksPagination.totalPages} · {feedbacksPagination.total} feedbacks no total
           </p>
         </div>
 
@@ -374,20 +398,22 @@ const Dashboard = () => {
               <thead>
                 <tr className="border-b border-[hsla(0,0%,100%,0.08)]">
                   <th className="p-3 text-left text-xs font-mono-label uppercase tracking-wider text-slate">ID</th>
+                  <th className="p-3 text-left text-xs font-mono-label uppercase tracking-wider text-slate">Usuário</th>
                   <th className="p-3 text-left text-xs font-mono-label uppercase tracking-wider text-slate">Comentário</th>
+                  <th className="p-3 text-left text-xs font-mono-label uppercase tracking-wider text-slate">Conversa</th>
                   <th className="p-3 text-left text-xs font-mono-label uppercase tracking-wider text-slate">Data</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={3} className="p-8 text-center">
+                    <td colSpan={5} className="p-8 text-center">
                       <Loader2 size={20} className="mx-auto animate-spin text-slate" />
                     </td>
                   </tr>
                 ) : bugs.length === 0 ? (
                   <EmptyTableRow
-                    colSpan={3}
+                    colSpan={5}
                     title="Nenhum bug reportado"
                     description="Nenhum bug report registrado para este período."
                   />
@@ -398,9 +424,11 @@ const Dashboard = () => {
                       className="border-b border-[#1E1E1E] transition-colors hover:bg-[#282828]"
                     >
                       <td className="p-3 text-sm font-mono-label text-yellow-400">#{bug.id}</td>
+                      <td className="p-3 text-xs font-body text-slate max-w-[120px] truncate">{bug.usuario_email}</td>
                       <td className="p-3 text-sm font-body text-off-white max-w-md">
                         {bug.comentario || <span className="text-slate italic">sem comentário</span>}
                       </td>
+                      <td className="p-3 text-xs font-body text-slate">{bug.conversa_titulo}</td>
                       <td className="p-3 text-xs font-mono-label text-slate">{formatDate(bug.created_at)}</td>
                     </tr>
                   ))
@@ -409,82 +437,37 @@ const Dashboard = () => {
             </table>
           </div>
 
+          {bugsPagination.totalPages > 1 && (
+            <PaginationControls
+              page={bugsPagination.page}
+              totalPages={bugsPagination.totalPages}
+              total={bugsPagination.total}
+              onPageChange={setBugPage}
+            />
+          )}
           <p className="mt-3 text-xs font-body text-slate">
-            Mostrando {bugs.length} bug reports
+            Página {bugsPagination.page} de {bugsPagination.totalPages} · {bugsPagination.total} bug reports no total
           </p>
         </div>
 
-        {/* ── Tabela de Avaliações ──────────────────────────────────────────── */}
-        <div className="bg-[#181818] border border-[#282828] rounded-card p-6">
-          <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <h2 className="font-display text-lg font-semibold text-off-white">
-              Avaliações Recentes
-            </h2>
-            <div className="flex flex-wrap gap-2">
-              {[
-                { key: 'all' as const, label: 'Todas' },
-                { key: 'positive' as const, label: 'Positivas' },
-                { key: 'negative' as const, label: 'Negativas' },
-              ].map((option) => (
-                <button
-                  key={option.key}
-                  onClick={() => setReviewFilter(option.key)}
-                  className={`rounded-tag px-3 py-1 text-xs font-body transition-all duration-200 ${
-                    reviewFilter === option.key
-                      ? 'bg-[#1ED760] text-off-white'
-                      : 'bg-[#282828] text-gray-light hover:text-off-white'
-                  }`}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-[#282828]">
-                  <th className="p-3 text-left text-xs font-mono-label uppercase tracking-wider text-slate">ID</th>
-                  <th className="p-3 text-left text-xs font-mono-label uppercase tracking-wider text-slate">Usuário</th>
-                  <th className="p-3 text-left text-xs font-mono-label uppercase tracking-wider text-slate">Avaliação</th>
-                  <th className="p-3 text-left text-xs font-mono-label uppercase tracking-wider text-slate">Data</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  <tr>
-                    <td colSpan={4} className="p-8 text-center">
-                      <Loader2 size={20} className="mx-auto animate-spin text-slate" />
-                    </td>
-                  </tr>
-                ) : filteredReviews.length === 0 ? (
-                  <EmptyTableRow
-                    colSpan={4}
-                    title="Nenhuma avaliação disponível"
-                    description="Nenhuma avaliação registrada para o período e filtro selecionados."
-                  />
-                ) : (
-                  filteredReviews.map((rv) => (
-                    <tr
-                      key={rv.id}
-                      className="border-b border-[#1E1E1E] transition-colors hover:bg-[#282828]"
-                    >
-                      <td className="p-3 text-sm font-mono-label text-teal">#{rv.id}</td>
-                      <td className="p-3 text-sm font-body text-off-white">{rv.usuario_id}</td>
-                      <td className="p-3">
-                        {rv.avaliacao === 'positive' ? (
-                          <ThumbsUp size={16} className="text-teal" />
-                        ) : (
-                          <ThumbsDown size={16} className="text-magenta" />
-                        )}
-                      </td>
-                      <td className="p-3 text-xs font-mono-label text-slate">{formatDate(rv.created_at)}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+        {/* ── Indicador de última atualização + refresh manual ─────────────── */}
+        <div className="mt-6 flex items-center justify-between">
+          <div className="flex items-center gap-3 text-xs text-slate">
+            <button
+              type="button"
+              onClick={refresh}
+              className="flex items-center gap-1.5 rounded-lg bg-[#282828] px-3 py-1.5 hover:bg-[#3E3E3E] hover:text-off-white transition-colors"
+              title="Atualizar agora"
+            >
+              <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
+              Atualizar
+            </button>
+            {lastUpdated && (
+              <span>
+                Última atualização: {lastUpdated.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                <span className="ml-1 text-[#1DB954]">(auto: 30s)</span>
+              </span>
+            )}
           </div>
         </div>
 
@@ -583,5 +566,65 @@ const EmptyTableRow = memo(({
 ));
 
 EmptyTableRow.displayName = 'EmptyTableRow';
+
+const PaginationControls = memo(({
+  page,
+  totalPages,
+  total,
+  onPageChange,
+}: {
+  page: number;
+  totalPages: number;
+  total: number;
+  onPageChange: (page: number) => void;
+}) => {
+  const pages: number[] = [];
+  const maxVisible = 5;
+  let start = Math.max(1, page - Math.floor(maxVisible / 2));
+  const end = Math.min(totalPages, start + maxVisible - 1);
+  if (end - start + 1 < maxVisible) {
+    start = Math.max(1, end - maxVisible + 1);
+  }
+  for (let i = start; i <= end; i++) {
+    pages.push(i);
+  }
+
+  return (
+    <div className="mt-4 flex items-center justify-center gap-1">
+      <button
+        type="button"
+        onClick={() => onPageChange(page - 1)}
+        disabled={page <= 1}
+        className="rounded-lg px-2 py-1 text-xs text-slate hover:text-off-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+      >
+        ←
+      </button>
+      {pages.map((p) => (
+        <button
+          key={p}
+          type="button"
+          onClick={() => onPageChange(p)}
+          className={`rounded-lg px-2.5 py-1 text-xs font-body transition-colors ${
+            p === page
+              ? 'bg-[#1DB954] text-off-white'
+              : 'text-slate hover:text-off-white hover:bg-[#282828]'
+          }`}
+        >
+          {p}
+        </button>
+      ))}
+      <button
+        type="button"
+        onClick={() => onPageChange(page + 1)}
+        disabled={page >= totalPages}
+        className="rounded-lg px-2 py-1 text-xs text-slate hover:text-off-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+      >
+        →
+      </button>
+    </div>
+  );
+});
+
+PaginationControls.displayName = 'PaginationControls';
 
 export default Dashboard;

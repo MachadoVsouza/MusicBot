@@ -4,7 +4,7 @@
 Sistema de recomendação musical com chatbot inteligente, usando RAG (Retrieval-Augmented Generation) para consulta a base de conhecimento musical e LangChain Agents para interação com a API do Spotify em tempo real.
 
 ## Stack
-- **Frontend**: React 18 + TypeScript 5.8 (strict) + Vite 7 + Tailwind CSS 3.4 + shadcn/ui (Radix UI)
+- **Frontend**: React 18 + TypeScript 5.8 (strict) + Vite 7 + Tailwind CSS 3.4 + shadcn/ui (Radix UI) + react-markdown (remark-gfm)
 - **Backend**: Python 3.12 + Flask 3 + SQLAlchemy 2 + LangChain 1.x + Gunicorn
 - **Database**: PostgreSQL 16 com pgvector (via Docker) + pgAdmin4
 - **LLM**: Ollama (gemma4:e4b) local com GPU + IFES Colatina (provider remoto alternativo)
@@ -27,11 +27,14 @@ Sistema de recomendação musical com chatbot inteligente, usando RAG (Retrieval
 - **Autenticação** JWT com suporte a OAuth2 Spotify e login custom (email/senha) com refresh automático de token
 - **MCP Server** com 13 tools do Spotify expostas via protocolo MCP (Claude Desktop, Insomnia)
 - **Memory do LangChain** com DbChatMessageHistory persistido no PostgreSQL
-- **Dashboard** com métricas e analytics do usuário
+- **Dashboard** com métricas, analytics, tabelas de feedback/bugs paginadas (20 itens/página), auto-refresh 30s, exportação PDF/CSV/JSON
 - **Export de conversas** em TXT, JSON, MD e PDF
+- **Feedback inline** (like/dislike/report) por mensagem com toggle e DELETE, indicadores visuais
+- **Markdown** nas respostas do bot com links customizados (badges com domínio visível, abertura em nova aba)
+- **Dual provider LLM** (local Ollama / IFES Colatina) com toggle no chat
 
 ## Próximos Passos Prioritários
-- Conectar feedback (like/dislike/report) do Chat.tsx ao backend
+- Restringir LLM a não gerar links falsos/alucinados (playlists que não existem)
 - Prune do modelo Ollama ou conectar com servidor IFES
 - Sistema de recomendação (/v1/recommendations + ReccoBeats)
 - Wikipedia automático no RAG

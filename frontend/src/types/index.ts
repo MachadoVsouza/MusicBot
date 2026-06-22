@@ -27,6 +27,8 @@ export interface Message {
   midia?: Midia | null;
   streaming?: boolean;
   respostaId?: number;
+  feedbackId?: number | null;
+  feedbackTipo?: 'like' | 'dislike' | null;
 }
 
 export interface Conversation {
@@ -45,7 +47,6 @@ export interface ChatApiResponse {
 export type DashboardPeriod = 'today' | 'week' | 'month';
 export type ExportFormat = 'pdf' | 'csv' | 'json';
 export type FeedbackTipo = 'like' | 'dislike' | 'report';
-export type ReviewRating = 'positive' | 'negative';
 
 export interface DashboardMetrics {
   total_perguntas: number;
@@ -61,24 +62,29 @@ export interface ChartPoint {
   perguntas: number;
 }
 
+export interface PaginatedResponse<T> {
+  items: T[];
+  total: number;
+  page: number;
+  per_page: number;
+  total_pages: number;
+}
+
 export interface DashboardFeedback {
   id: string;
   tipo: 'like' | 'dislike';
-  comentario: string;
+  usuario_email: string;
   conversa_titulo: string;
+  mensagem_avaliada: string;
+  comentario: string;
   created_at: string;
 }
 
 export interface DashboardBug {
   id: string;
   comentario: string;
-  created_at: string;
-}
-
-export interface DashboardReview {
-  id: string;
-  usuario_id: string;
-  avaliacao: ReviewRating;
+  usuario_email: string;
+  conversa_titulo: string;
   created_at: string;
 }
 

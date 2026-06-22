@@ -104,15 +104,18 @@ class ChatRepository:
             mensagens = []
             for p in perguntas:
                 mensagens.append({
-                    "role":      "user",
-                    "content":   p.conteudo,
-                    "timestamp": p.created_at.isoformat(),
+                    "role":        "user",
+                    "content":     p.conteudo,
+                    "timestamp":   p.created_at.isoformat(),
+                    "pergunta_id": p.id,
                 })
                 if p.resposta:
                     mensagens.append({
-                        "role":      "assistant",
-                        "content":   p.resposta.conteudo,
-                        "timestamp": p.resposta.created_at.isoformat(),
+                        "role":        "bot",
+                        "content":     p.resposta.conteudo,
+                        "timestamp":   p.resposta.created_at.isoformat(),
+                        "resposta_id": p.resposta.id,
+                        "usou_rag":    p.resposta.usou_rag,
                     })
             return mensagens
         finally:

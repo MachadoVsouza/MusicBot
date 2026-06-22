@@ -203,6 +203,29 @@ def enviar_feedback(token: str, usuario_id: str):
         db.close()
 
 
+@chat_bp.delete("/feedback/<int:feedback_id>")
+@require_auth
+def deletar_feedback(token: str, usuario_id: str, feedback_id: int):
+    """
+    Remove um feedback existente (toggle off).
+    Só o próprio usuário que criou o feedback pode removê-lo.
+    """
+    db = get_session()
+    try:
+        fb = db.get(Feedback, feedback_id)
+        if not fb:
+            return not_found("Feedback não encontrado")
+
+        if fb.usuario_id != usuario_id:
+            return error("Você só pode remover seus próprios feedbacks", 403)
+
+        db.delete(fb)
+        db.commit()
+        return success({"deleted": True, "id": feedback_id})
+    finally:
+        db.close()
+
+
 # ── Export do histórico ───────────────────────────────────────────────────────
 
 @chat_bp.get("/<int:chat_id>/export")

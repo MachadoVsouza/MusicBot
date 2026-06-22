@@ -2,8 +2,9 @@ from datetime import datetime, timezone, timedelta
 from sqlalchemy import func, case
 from app.database.connection import get_session
 from app.database.models import (
-    Chat, Pergunta, Resposta, Feedback, FeedbackTipo
+    Chat, Pergunta, Resposta, Feedback, FeedbackTipo, Usuario,
 )
+from sqlalchemy import desc, asc
 
 
 class DashboardRepository:
@@ -104,12 +105,15 @@ class DashboardRepository:
         finally:
             session.close()
 
-    def get_feedbacks(self, desde: datetime, tipo: str | None = None) -> list[dict]:
-        """Retorna likes e dislikes (avaliações). NÃO inclui reports."""
+    def get_feedbacks(self, desde: datetime, tipo: str | None = None,
+                      page: int = 1, per_page: int = 20,
+                      order_by: str = "created_at") -> dict:
+        """Retorna likes e dislikes (avaliações) com paginação. NÃO inclui reports."""
         session = get_session()
         try:
-            q = (
-                session.query(Feedback, Pergunta, Chat)
+            base = (
+                session.query(Feedback, Usuario, Resposta, Chat)
+                .join(Usuario, Feedback.usuario_id == Usuario.spotify_id)
                 .join(Resposta, Feedback.resposta_id == Resposta.id)
                 .join(Pergunta, Resposta.pergunta_id == Pergunta.id)
                 .join(Chat, Pergunta.chat_id == Chat.id)
@@ -120,55 +124,104 @@ class DashboardRepository:
             )
 
             if tipo and tipo in ("like", "dislike"):
-                q = q.filter(Feedback.tipo == FeedbackTipo[tipo])
+                base = base.filter(Feedback.tipo == FeedbackTipo[tipo])
 
-            rows = q.order_by(Feedback.created_at.desc()).limit(100).all()
+            total = base.count()
+            offset = (page - 1) * per_page
 
-            return [
+            order_col = Feedback.id if order_by == "id" else Feedback.created_at
+            order_dir = desc(order_col) if order_by == "created_at" else asc(order_col)
+
+            rows = (
+                base
+                .order_by(order_dir)
+                .offset(offset)
+                .limit(per_page)
+                .all()
+            )
+
+            items = [
                 {
                     "id": str(fb.id),
                     "tipo": fb.tipo.value,
-                    "comentario": fb.comentario or "",
+                    "usuario_email": usuario.email or usuario.spotify_id,
                     "conversa_titulo": chat.titulo,
+                    "mensagem_avaliada": resposta.conteudo[:200] if resposta.conteudo else "",
+                    "comentario": fb.comentario or "",
                     "created_at": fb.created_at.isoformat(),
                 }
-                for fb, pergunta, chat in rows
+                for fb, usuario, resposta, chat in rows
             ]
+
+            return {
+                "items": items,
+                "total": total,
+                "page": page,
+                "per_page": per_page,
+                "total_pages": max(1, (total + per_page - 1) // per_page),
+            }
         finally:
             session.close()
 
-    def get_bugs(self, desde: datetime) -> list[dict]:
-        """Retorna apenas reports (bugs). Likes/dislikes NÃO aparecem aqui."""
+    def get_bugs(self, desde: datetime, page: int = 1, per_page: int = 20) -> dict:
+        """Retorna apenas reports (bugs) com paginação, incluindo usuário e conversa."""
         session = get_session()
         try:
-            rows = (
-                session.query(Feedback)
+            base = (
+                session.query(Feedback, Usuario, Chat)
+                .join(Usuario, Feedback.usuario_id == Usuario.spotify_id)
+                .join(Resposta, Feedback.resposta_id == Resposta.id)
+                .join(Pergunta, Resposta.pergunta_id == Pergunta.id)
+                .join(Chat, Pergunta.chat_id == Chat.id)
                 .filter(
                     Feedback.created_at >= desde,
                     Feedback.tipo == FeedbackTipo.report,
                 )
+            )
+
+            total = base.count()
+            offset = (page - 1) * per_page
+
+            rows = (
+                base
                 .order_by(Feedback.created_at.desc())
-                .limit(100)
+                .offset(offset)
+                .limit(per_page)
                 .all()
             )
 
-            return [
+            items = [
                 {
                     "id": str(fb.id),
                     "comentario": fb.comentario or "",
+                    "usuario_email": usuario.email or usuario.spotify_id,
+                    "conversa_titulo": chat.titulo,
                     "created_at": fb.created_at.isoformat(),
                 }
-                for fb in rows
+                for fb, usuario, chat in rows
             ]
+
+            return {
+                "items": items,
+                "total": total,
+                "page": page,
+                "per_page": per_page,
+                "total_pages": max(1, (total + per_page - 1) // per_page),
+            }
         finally:
             session.close()
 
-    def get_avaliacoes(self, desde: datetime, rating: str | None = None) -> list[dict]:
-        """Retorna avaliações (like/dislike) recentes."""
+    def get_avaliacoes(self, desde: datetime, rating: str | None = None,
+                       page: int = 1, per_page: int = 20) -> dict:
+        """Retorna avaliações (like/dislike) recentes com paginação, incluindo usuário e conversa."""
         session = get_session()
         try:
-            q = (
-                session.query(Feedback)
+            base = (
+                session.query(Feedback, Usuario, Chat)
+                .join(Usuario, Feedback.usuario_id == Usuario.spotify_id)
+                .join(Resposta, Feedback.resposta_id == Resposta.id)
+                .join(Pergunta, Resposta.pergunta_id == Pergunta.id)
+                .join(Chat, Pergunta.chat_id == Chat.id)
                 .filter(
                     Feedback.created_at >= desde,
                     Feedback.tipo.in_([FeedbackTipo.like, FeedbackTipo.dislike]),
@@ -176,20 +229,39 @@ class DashboardRepository:
             )
 
             if rating == "positive":
-                q = q.filter(Feedback.tipo == FeedbackTipo.like)
+                base = base.filter(Feedback.tipo == FeedbackTipo.like)
             elif rating == "negative":
-                q = q.filter(Feedback.tipo == FeedbackTipo.dislike)
+                base = base.filter(Feedback.tipo == FeedbackTipo.dislike)
 
-            rows = q.order_by(Feedback.created_at.desc()).limit(100).all()
+            total = base.count()
+            offset = (page - 1) * per_page
 
-            return [
+            rows = (
+                base
+                .order_by(Feedback.created_at.desc())
+                .offset(offset)
+                .limit(per_page)
+                .all()
+            )
+
+            items = [
                 {
                     "id": str(fb.id),
-                    "usuario_id": fb.usuario_id,
+                    "usuario_email": usuario.email or usuario.spotify_id,
                     "avaliacao": "positive" if fb.tipo == FeedbackTipo.like else "negative",
+                    "comentario": fb.comentario or "",
+                    "conversa_titulo": chat.titulo,
                     "created_at": fb.created_at.isoformat(),
                 }
-                for fb in rows
+                for fb, usuario, chat in rows
             ]
+
+            return {
+                "items": items,
+                "total": total,
+                "page": page,
+                "per_page": per_page,
+                "total_pages": max(1, (total + per_page - 1) // per_page),
+            }
         finally:
             session.close()
