@@ -30,6 +30,7 @@ class SpotifyService:
                 "id":    item["id"],
                 "name":  item["name"],
                 "total": item.get("tracks", {}).get("total", 0) if item.get("tracks") else 0,
+                "url":   item["external_urls"]["spotify"],
             }
             for item in results["items"]
             if item
